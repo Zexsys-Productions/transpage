@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Transpage",
+  "version": "0.1",
+  "description": "Learn a language just by browsing the web",
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": [
+        "https://developer.chrome.com/docs/extensions/*",
+        "https://developer.chrome.com/docs/webstore/*"
+      ]
+    }
+  ]
+}
