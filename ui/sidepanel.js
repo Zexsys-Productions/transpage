@@ -3,6 +3,7 @@ console.log('Transpage sidepanel loaded');
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM Content Loaded');
   const translateButton = document.getElementById('translatePage');
+  const learnModeButton = document.getElementById('translateWords');
   const statusDiv = document.getElementById('status');
   const progressDiv = document.getElementById('progress');
   const sourceLanguageSelect = document.getElementById('sourceLanguage');
@@ -50,6 +51,50 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error in sidepanel script:', error);
       showStatus('Error: ' + error.message, 'error');
       hideProgress();
+      translateButton.disabled = false;
+    }
+  });
+
+  learnModeButton.addEventListener('click', async () => {
+    console.log('Learn mode button clicked');
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      console.log('Current tab:', tab);
+      
+      showStatus('Starting learn mode...', 'success');
+      showProgress();
+      learnModeButton.disabled = true;
+      translateButton.disabled = true;
+
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+        console.log('Content script injected');
+      } catch (error) {
+        console.log('Content script already exists:', error);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'learnMode',
+        sourceLanguage: sourceLanguageSelect.value,
+        targetLanguage: targetLanguageSelect.value
+      });
+
+      if (response.success) {
+        showStatus('Learn mode activated! Hover over translated words to see English.', 'success');
+      } else {
+        showStatus('Error: ' + response.error, 'error');
+      }
+    } catch (error) {
+      console.error('Learn mode error:', error);
+      showStatus('Error: ' + error.message, 'error');
+    } finally {
+      hideProgress();
+      learnModeButton.disabled = false;
       translateButton.disabled = false;
     }
   });

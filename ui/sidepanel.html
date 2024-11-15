@@ -75,6 +75,26 @@
       background-color: #dadce0;
       cursor: not-allowed;
     }
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+    .button-group button {
+      flex: 1;
+    }
+    .secondary-button {
+      background-color: #fff;
+      color: #1a73e8;
+      border: 1px solid #1a73e8;
+    }
+    .secondary-button:hover {
+      background-color: #f8f9fa;
+    }
+    .secondary-button:disabled {
+      border-color: #dadce0;
+      color: #dadce0;
+      background-color: #fff;
+    }
     .status {
       padding: 10px;
       border-radius: 4px;
@@ -135,7 +155,10 @@
       </select>
     </div>
 
-    <button id="translatePage">Translate Page</button>
+    <div class="button-group">
+      <button id="translatePage">Translate Page</button>
+      <button id="translateWords" class="secondary-button">Learn Mode</button>
+    </div>
 
     <div id="status" class="status"></div>
     
