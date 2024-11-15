@@ -149,21 +149,34 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
             styles.textContent = `
                 .transpage-word {
                     cursor: pointer;
-                    background-color: #f8f9fa;
-                    border-bottom: 1px dotted #666;
+                    background-color: inherit;
+                    color: inherit;
+                    border-bottom: 1px dotted currentColor;
                     position: relative;
                     display: inline-block;
+                    padding: 0 1px;
+                    /* Create stacking context */
+                    isolation: isolate;
+                }
+                .transpage-word::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    background-color: currentColor;
+                    opacity: 0.1;
+                    pointer-events: none;
                 }
                 .transpage-tooltip {
                     visibility: hidden;
-                    position: absolute;
-                    z-index: 9999;
-                    bottom: 125%;
-                    left: 50%;
-                    transform: translateX(-50%);
+                    position: fixed;  /* Changed to fixed positioning */
+                    z-index: 2147483647;  /* Maximum z-index value */
+                    pointer-events: none;  /* Prevent tooltip from blocking interactions */
                     padding: 8px 12px;
-                    background-color: #2c3e50;
-                    color: white;
+                    background-color: var(--tooltip-bg, #2c3e50);
+                    color: var(--tooltip-color, white);
                     border-radius: 6px;
                     font-size: 14px;
                     white-space: nowrap;
@@ -179,7 +192,7 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                     transform: translateX(-50%);
                     border-width: 5px;
                     border-style: solid;
-                    border-color: #2c3e50 transparent transparent transparent;
+                    border-color: var(--tooltip-bg, #2c3e50) transparent transparent transparent;
                 }
                 .transpage-word:hover .transpage-tooltip {
                     visibility: visible;
@@ -187,15 +200,53 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                 }
                 .transpage-tooltip-original {
                     font-weight: bold;
-                    color: #3498db;
+                    color: var(--tooltip-highlight, #3498db);
                 }
                 .transpage-tooltip-type {
                     font-size: 12px;
-                    color: #95a5a6;
+                    color: var(--tooltip-secondary, #95a5a6);
                     margin-top: 2px;
                 }
             `;
             document.head.appendChild(styles);
+
+            // Add tooltip element to body if it doesn't exist
+            if (!document.getElementById('transpage-floating-tooltip')) {
+                const tooltip = document.createElement('div');
+                tooltip.id = 'transpage-floating-tooltip';
+                tooltip.className = 'transpage-tooltip';
+                document.body.appendChild(tooltip);
+            }
+
+            // Add event listeners for tooltip functionality
+            document.addEventListener('mouseover', function(event) {
+                if (event.target.classList.contains('transpage-word')) {
+                    const tooltip = document.getElementById('transpage-floating-tooltip');
+                    const originalWord = event.target.dataset.originalWord;
+                    
+                    tooltip.innerHTML = `
+                        <div class="transpage-tooltip-original">${originalWord}</div>
+                        <div class="transpage-tooltip-type">English → Indonesian</div>
+                    `;
+                    
+                    // Position tooltip above the word
+                    const rect = event.target.getBoundingClientRect();
+                    const tooltipHeight = tooltip.offsetHeight;
+                    tooltip.style.left = rect.left + (rect.width / 2) + 'px';
+                    tooltip.style.top = (rect.top - tooltipHeight - 10) + 'px';
+                    tooltip.style.transform = 'translateX(-50%)';
+                    tooltip.style.visibility = 'visible';
+                    tooltip.style.opacity = '1';
+                }
+            });
+
+            document.addEventListener('mouseout', function(event) {
+                if (event.target.classList.contains('transpage-word')) {
+                    const tooltip = document.getElementById('transpage-floating-tooltip');
+                    tooltip.style.visibility = 'hidden';
+                    tooltip.style.opacity = '0';
+                }
+            });
         }
 
         console.log('Creating translator...');
@@ -290,15 +341,11 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
 
                         try {
                             const translated = await translator.translate(wordToTranslate);
-                            const tooltip = `
-                                <div class="transpage-tooltip">
-                                    <div class="transpage-tooltip-original">${wordToTranslate}</div>
-                                    <div class="transpage-tooltip-type">English → Indonesian</div>
-                                </div>
-                            `;
-                            const span = `<span class="transpage-word">${translated}${tooltip}</span>`;
-                            // Replace only the first occurrence of the word
-                            translatedSentence = sentence.replace(wordToTranslate, span);
+                            const span = document.createElement('span');
+                            span.className = 'transpage-word';
+                            span.textContent = translated;
+                            span.dataset.originalWord = wordToTranslate;
+                            translatedSentence = sentence.replace(wordToTranslate, span.outerHTML);
                             count++;
                         } catch (error) {
                             console.error('Translation error for word:', wordToTranslate, error);
