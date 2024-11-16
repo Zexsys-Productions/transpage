@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (response.success) {
-        showStatus('Learn mode activated! Hover over translated words to see English.', 'success');
+        showStatus('Learn mode activated! Hover over words to learn them.', 'success');
       } else {
         showStatus('Error: ' + response.error, 'error');
       }

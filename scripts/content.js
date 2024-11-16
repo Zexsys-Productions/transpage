@@ -147,16 +147,25 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
             const styles = document.createElement('style');
             styles.id = 'transpage-tooltip-styles';
             styles.textContent = `
+                @font-face {
+                    font-family: 'FineprintPro';
+                    src: url('chrome-extension://${chrome.runtime.id}/fonts/FineprintProRegular.OTF');
+                    font-weight: normal;
+                    font-style: normal;
+                }
                 .transpage-word {
                     cursor: pointer;
                     background-color: inherit;
-                    color: inherit;
-                    border-bottom: 1px dotted currentColor;
+                    color: #000000 !important;
+                    border: 2px solid #333333;
+                    border-radius: 4px;
                     position: relative;
                     display: inline-block;
-                    padding: 0 1px;
+                    padding: 0 4px;
+                    font-family: 'FineprintPro', sans-serif !important;
                     /* Create stacking context */
                     isolation: isolate;
+                    z-index: 1;
                 }
                 .transpage-word::before {
                     content: '';
@@ -165,9 +174,27 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                     right: 0;
                     top: 0;
                     bottom: 0;
-                    background-color: currentColor;
-                    opacity: 0.1;
+                    background-color: #FFF9C4;
+                    opacity: 0.7;
                     pointer-events: none;
+                    border-radius: 2px;
+                    z-index: -1;
+                }
+                .transpage-word-number {
+                    position: absolute;
+                    left: -10px;
+                    top: -10px;
+                    width: 20px;
+                    height: 20px;
+                    background-color: #333333;
+                    color: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    font-family: sans-serif;
+                    z-index: 2;
                 }
                 .transpage-tooltip {
                     visibility: hidden;
@@ -284,6 +311,9 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
             });
         }
 
+        // Add a counter for translated words
+        window.transpageWordCount = window.transpageWordCount || 0;
+
         console.log('Creating translator...');
         const translator = await window.translation.createTranslator({
             sourceLanguage,
@@ -377,9 +407,14 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                         try {
                             const translated = await translator.translate(wordToTranslate);
                             const span = document.createElement('span');
-                            span.className = 'transpage-word';
                             span.textContent = translated;
                             span.dataset.originalWord = wordToTranslate;
+                            span.className = 'transpage-word';
+                            window.transpageWordCount++;
+                            const numberDiv = document.createElement('div');
+                            numberDiv.className = 'transpage-word-number';
+                            numberDiv.textContent = window.transpageWordCount;
+                            span.appendChild(numberDiv);
                             translatedSentence = sentence.replace(wordToTranslate, span.outerHTML);
                             count++;
                         } catch (error) {

@@ -24,7 +24,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["ui/*"],
+      "resources": ["ui/*", "fonts/*"],
       "matches": ["<all_urls>"]
     }
   ],
