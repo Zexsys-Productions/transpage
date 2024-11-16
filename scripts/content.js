@@ -114,7 +114,8 @@ async function handleTranslation(sourceLanguage, targetLanguage) {
                 console.log('Translated to:', translated.substring(0, 50) + (translated.length > 50 ? '...' : ''));
                 
                 const span = document.createElement('span');
-                span.textContent = translated;
+                const textNode = document.createTextNode(translated);
+                span.appendChild(textNode);
                 span.title = text;
                 span.style.cursor = 'help';
                 span.style.backgroundColor = '#f8f9fa';
@@ -195,6 +196,7 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                     font-size: 12px;
                     font-family: sans-serif;
                     z-index: 2;
+                    pointer-events: none;
                 }
                 .transpage-tooltip {
                     visibility: hidden;
@@ -279,7 +281,7 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                 if (event.target.classList.contains('transpage-word')) {
                     console.log('Word clicked:', event.target);
                     const originalWord = event.target.dataset.originalWord;
-                    const translatedWord = event.target.textContent;
+                    const translatedWord = event.target.dataset.translatedText;
                     
                     console.log('Sending showQuiz message:', { originalWord, translatedWord });
                     // Send message to show quiz in sidepanel
@@ -407,14 +409,18 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                         try {
                             const translated = await translator.translate(wordToTranslate);
                             const span = document.createElement('span');
-                            span.textContent = translated;
+                            const textNode = document.createTextNode(translated);
+                            span.appendChild(textNode);
                             span.dataset.originalWord = wordToTranslate;
-                            span.className = 'transpage-word';
+                            span.dataset.translatedText = translated;  // Store the plain translated text
+                            span.className = 'transpage-word';  
+                            // Add number to words in the main content
                             window.transpageWordCount++;
                             const numberDiv = document.createElement('div');
                             numberDiv.className = 'transpage-word-number';
                             numberDiv.textContent = window.transpageWordCount;
                             span.appendChild(numberDiv);
+
                             translatedSentence = sentence.replace(wordToTranslate, span.outerHTML);
                             count++;
                         } catch (error) {

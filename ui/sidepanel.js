@@ -149,7 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const quizFeedback = document.getElementById('quiz-feedback');
 
     // Reset and show quiz UI
-    translatedWordDiv.textContent = translatedWord;
+    // Extract just the translated text without any HTML or numbers
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = translatedWord;
+    const plainText = tempDiv.querySelector('.transpage-word')?.dataset.translatedText || translatedWord;
+    translatedWordDiv.textContent = plainText;
     guessInput.value = '';
     guessInput.disabled = false;
     submitButton.disabled = false;
