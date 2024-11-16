@@ -21,6 +21,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
+function isAllCaps(text) {
+    return text.length > 1 && text === text.toUpperCase() && /[A-Z]/.test(text);
+}
+
+function startsWithCapital(text) {
+    return text.length > 1 && /^[A-Z]/.test(text) && !/^[A-Z]+$/.test(text);
+}
+
+function shouldPreserveWord(word) {
+    if (word.trim().length <= 1) return false;
+    
+    const trimmedWord = word.trim();
+    if (trimmedWord.includes('.')) return true;
+    if (trimmedWord.includes('@')) return true;
+    if (trimmedWord.includes('#')) return true;
+    if (/\d/.test(trimmedWord)) return true;
+    
+    return isAllCaps(trimmedWord) || startsWithCapital(trimmedWord);
+}
+
+function processTextForTranslation(text) {
+    const words = text.split(/(\s+)/);
+    const processedWords = words.map(word => {
+        if (shouldPreserveWord(word)) {
+            return { text: word, translate: false };
+        }
+        return { text: word, translate: true };
+    });
+    return processedWords;
+}
+
 async function handleTranslation(sourceLanguage, targetLanguage) {
     console.log('Starting translation...', { sourceLanguage, targetLanguage });
 
@@ -84,11 +115,47 @@ async function handleTranslation(sourceLanguage, targetLanguage) {
             const text = node.textContent.trim();
             try {
                 console.log('Translating:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
-                const translated = await translator.translate(text);
-                console.log('Translated to:', translated.substring(0, 50) + (translated.length > 50 ? '...' : ''));
+                
+                const processedWords = processTextForTranslation(text);
+                let translatedText = '';
+                let translationBatch = '';
+                let preservedSpaces = [];
+                
+                for (let i = 0; i < processedWords.length; i++) {
+                    const { text: wordText, translate } = processedWords[i];
+                    
+                    if (/^\s+$/.test(wordText)) {
+                        if (translationBatch) {
+                            const translated = await translator.translate(translationBatch.trim());
+                            translatedText += translated;
+                            translationBatch = '';
+                        }
+                        translatedText += wordText;
+                        continue;
+                    }
+                    
+                    if (translate) {
+                        translationBatch += wordText + ' ';
+                    } else {
+                        if (translationBatch) {
+                            const translated = await translator.translate(translationBatch.trim());
+                            translatedText += translated + ' ';
+                            translationBatch = '';
+                        }
+                        translatedText += wordText + ' ';
+                    }
+                }
+                
+                if (translationBatch) {
+                    const translated = await translator.translate(translationBatch.trim());
+                    translatedText += translated;
+                }
+                
+                translatedText = translatedText.trim();
+                console.log('Translated to:', translatedText.substring(0, 50) + (translatedText.length > 50 ? '...' : ''));
                 
                 const span = document.createElement('span');
-                span.textContent = translated;
+                span.textContent = translatedText;
                 span.title = text;
                 span.style.cursor = 'help';
                 span.style.backgroundColor = '#f8f9fa';
