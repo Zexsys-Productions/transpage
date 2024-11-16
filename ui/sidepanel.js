@@ -113,4 +113,116 @@ document.addEventListener('DOMContentLoaded', () => {
   function hideProgress() {
     progressDiv.style.display = 'none';
   }
+
+  // Quiz functionality
+  let currentQuizWord = null;
+  let originalQuizWord = null;
+
+  // Listen for quiz messages
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Sidepanel received message:', request);
+    if (request.action === 'startQuiz') {
+      console.log('Starting quiz with:', request.data);
+      showQuiz(request.data.translatedWord, request.data.originalWord);
+    }
+  });
+
+  // Check for existing quiz state when panel is opened
+  console.log('Checking for existing quiz state...');
+  chrome.runtime.sendMessage({ action: 'getQuizState' }, (quizState) => {
+    console.log('Received quiz state:', quizState);
+    if (quizState) {
+      showQuiz(quizState.translatedWord, quizState.originalWord);
+    }
+  });
+
+  function showQuiz(translatedWord, originalWord) {
+    console.log('Showing quiz for word:', { translatedWord, originalWord });
+    currentQuizWord = translatedWord;
+    originalQuizWord = originalWord;
+
+    const quizContainer = document.getElementById('quiz-container');
+    const translatedWordDiv = document.getElementById('translated-word');
+    const guessInput = document.getElementById('guess-input');
+    const submitButton = document.getElementById('submit-guess');
+    const giveUpButton = document.getElementById('give-up');
+    const quizFeedback = document.getElementById('quiz-feedback');
+
+    // Reset and show quiz UI
+    translatedWordDiv.textContent = translatedWord;
+    guessInput.value = '';
+    guessInput.disabled = false;
+    submitButton.disabled = false;
+    giveUpButton.disabled = false;
+    quizFeedback.style.display = 'none';
+    quizFeedback.className = 'quiz-feedback';
+    quizContainer.style.display = 'block';
+    guessInput.focus();
+
+    // Define all handlers first
+    const handleEnter = (event) => {
+      if (event.key === 'Enter') {
+        handleSubmit();
+      }
+    };
+
+    // Handle submit button
+    const handleSubmit = () => {
+      const guess = guessInput.value.trim();
+      if (!guess) return;
+
+      // Send the guess to background script for validation
+      chrome.runtime.sendMessage({
+        action: 'checkGuess',
+        guess: guess,
+        originalWord: originalWord
+      }, (response) => {
+        console.log('Guess check response:', response);
+        quizFeedback.style.display = 'block';
+
+        if (response && response.isCorrect) {
+          quizFeedback.textContent = 'Correct! ';
+          quizFeedback.className = 'quiz-feedback correct';
+          guessInput.disabled = true;
+          submitButton.disabled = true;
+          giveUpButton.disabled = true;
+
+          // Hide quiz after delay
+          setTimeout(() => {
+            quizContainer.style.display = 'none';
+          }, 2000);
+        } else {
+          quizFeedback.textContent = 'Try again!';
+          quizFeedback.className = 'quiz-feedback incorrect';
+          guessInput.value = '';
+          guessInput.focus();
+        }
+      });
+    };
+
+    // Handle give up button
+    const handleGiveUp = () => {
+      quizFeedback.textContent = `The word was: ${originalWord}`;
+      quizFeedback.className = 'quiz-feedback revealed';
+      quizFeedback.style.display = 'block';
+      guessInput.disabled = true;
+      submitButton.disabled = true;
+      giveUpButton.disabled = true;
+
+      // Hide quiz after delay
+      setTimeout(() => {
+        quizContainer.style.display = 'none';
+      }, 3000);
+    };
+
+    // Remove old event listeners if they exist
+    submitButton.removeEventListener('click', handleSubmit);
+    giveUpButton.removeEventListener('click', handleGiveUp);
+    guessInput.removeEventListener('keypress', handleEnter);
+
+    // Add new event listeners
+    submitButton.addEventListener('click', handleSubmit);
+    giveUpButton.addEventListener('click', handleGiveUp);
+    guessInput.addEventListener('keypress', handleEnter);
+  }
 });

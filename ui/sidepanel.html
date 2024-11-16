@@ -133,6 +133,55 @@
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
     }
+
+    /* Quiz styles */
+    #quiz-container {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dadce0;
+    }
+    .translated-word {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1a73e8;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    #guess-input {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    #guess-input:focus {
+      border-color: #1a73e8;
+      outline: none;
+    }
+    .quiz-feedback {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: 500;
+      display: none;
+    }
+    .quiz-feedback.correct {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+    .quiz-feedback.incorrect {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+    .quiz-feedback.revealed {
+      background-color: #fef7e0;
+      color: #b06000;
+    }
   </style>
 </head>
 <body>
@@ -166,6 +215,17 @@
       <div class="progress-bar">
         <div class="progress-bar-fill"></div>
       </div>
+    </div>
+
+    <!-- Quiz UI -->
+    <div id="quiz-container">
+      <div id="translated-word" class="translated-word"></div>
+      <input type="text" id="guess-input" placeholder="Type the original English word...">
+      <div class="button-group">
+        <button id="submit-guess">Submit Guess</button>
+        <button id="give-up" class="secondary-button">I Give Up</button>
+      </div>
+      <div id="quiz-feedback" class="quiz-feedback"></div>
     </div>
   </div>
   <script src="sidepanel.js"></script>

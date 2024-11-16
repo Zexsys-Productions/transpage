@@ -171,9 +171,9 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                 }
                 .transpage-tooltip {
                     visibility: hidden;
-                    position: fixed;  /* Changed to fixed positioning */
-                    z-index: 2147483647;  /* Maximum z-index value */
-                    pointer-events: none;  /* Prevent tooltip from blocking interactions */
+                    position: fixed;
+                    z-index: 2147483647;
+                    pointer-events: none;
                     padding: 8px 12px;
                     background-color: var(--tooltip-bg, #2c3e50);
                     color: var(--tooltip-color, white);
@@ -222,11 +222,10 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
             document.addEventListener('mouseover', function(event) {
                 if (event.target.classList.contains('transpage-word')) {
                     const tooltip = document.getElementById('transpage-floating-tooltip');
-                    const originalWord = event.target.dataset.originalWord;
                     
                     tooltip.innerHTML = `
-                        <div class="transpage-tooltip-original">${originalWord}</div>
-                        <div class="transpage-tooltip-type">English → Indonesian</div>
+                        <div class="transpage-tooltip-original">???</div>
+                        <div class="transpage-tooltip-type">Click to guess the word</div>
                     `;
                     
                     // Position tooltip above the word
@@ -245,6 +244,42 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                     const tooltip = document.getElementById('transpage-floating-tooltip');
                     tooltip.style.visibility = 'hidden';
                     tooltip.style.opacity = '0';
+                }
+            });
+
+            // Add click handler for quiz functionality
+            document.addEventListener('click', function(event) {
+                if (event.target.classList.contains('transpage-word')) {
+                    console.log('Word clicked:', event.target);
+                    const originalWord = event.target.dataset.originalWord;
+                    const translatedWord = event.target.textContent;
+                    
+                    console.log('Sending showQuiz message:', { originalWord, translatedWord });
+                    // Send message to show quiz in sidepanel
+                    chrome.runtime.sendMessage({
+                        action: 'showQuiz',
+                        data: {
+                            originalWord,
+                            translatedWord
+                        }
+                    }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Error sending message:', chrome.runtime.lastError);
+                        } else {
+                            console.log('Message sent successfully:', response);
+                        }
+                    });
+                }
+            });
+
+            // Listen for messages from background script
+            chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+                if (request.action === 'checkGuess') {
+                    console.log('Checking guess:', request.guess, 'against:', request.originalWord);
+                    const isCorrect = request.guess.toLowerCase().trim() === request.originalWord.toLowerCase().trim();
+                    console.log('Is correct?', isCorrect);
+                    sendResponse({ isCorrect });
+                    return true;
                 }
             });
         }
