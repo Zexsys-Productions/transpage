@@ -3,7 +3,7 @@
 TransPage transforms your web browsing into an engaging language learning experience. This Chrome extension helps you learn new languages naturally while reading content you're interested in.
 
 ## 🎥 Demo
-https://github.com/user-attachments/assets/e69a05f2-f778-4eb9-93bf-a706343580f2
+https://github.com/user-attachments/assets/17780916-04eb-4ade-ba57-a2c2af0b6f59
 
 ## ✨ Features
 
