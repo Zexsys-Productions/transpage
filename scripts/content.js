@@ -183,17 +183,17 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                 }
                 .transpage-word-number {
                     position: absolute;
-                    left: -10px;
-                    top: -10px;
-                    width: 20px;
-                    height: 20px;
+                    left: -6px;
+                    top: -6px;
+                    width: 12px;
+                    height: 12px;
                     background-color: #333333;
                     color: white;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 12px;
+                    font-size: 8px;
                     font-family: sans-serif;
                     z-index: 2;
                     pointer-events: none;
