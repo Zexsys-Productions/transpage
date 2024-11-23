@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (response.success) {
-        showStatus('Learn mode activated! Hover over words to learn them.', 'success');
+        showStatus('Learn mode activated! Click on translated words to learn them.', 'success');
       } else {
         showStatus('Error: ' + response.error, 'error');
       }
     } catch (error) {
       console.error('Learn mode error:', error);
-      showStatus('Error: ' + error.message, 'error');
+      showStatus('Error: ' + error.message + '\n\nPlease try refreshing the page.', 'error');
     } finally {
       hideProgress();
       learnModeButton.disabled = false;
@@ -55,6 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     statusDiv.textContent = message;
     statusDiv.style.display = 'block';
     statusDiv.className = 'status ' + type;
+    if (type === 'error') {
+      statusDiv.style.whiteSpace = 'pre-line';
+    }
   }
 
   function showProgress() {
@@ -65,119 +68,215 @@ document.addEventListener('DOMContentLoaded', () => {
     progressDiv.style.display = 'none';
   }
 
-  // Quiz functionality
-  let currentQuizWord = null;
-  let originalQuizWord = null;
+  // Store translated words
+  let translatedWords = [];
 
-  // Listen for quiz messages
+  // Listen for new translated words and card open requests
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Sidepanel received message:', request);
-    if (request.action === 'startQuiz') {
-      console.log('Starting quiz with:', request.data);
-      showQuiz(request.data.translatedWord, request.data.originalWord);
+    if (request.action === 'newTranslatedWord') {
+      addWordCard(request.data.translatedWord, request.data.originalWord);
+    } else if (request.action === 'openWordCard') {
+      openWordCard(request.data.translatedWord);
     }
   });
 
-  // Check for existing quiz state when panel is opened
-  console.log('Checking for existing quiz state...');
-  chrome.runtime.sendMessage({ action: 'getQuizState' }, (quizState) => {
-    console.log('Received quiz state:', quizState);
-    if (quizState) {
-      showQuiz(quizState.translatedWord, quizState.originalWord);
+  function addWordCard(translatedWord, originalWord) {
+    // Check if word already exists
+    if (translatedWords.some(w => w.translated === translatedWord)) {
+      return;
     }
-  });
 
-  function showQuiz(translatedWord, originalWord) {
-    console.log('Showing quiz for word:', { translatedWord, originalWord });
-    currentQuizWord = translatedWord;
-    originalQuizWord = originalWord;
+    // Add to tracking array
+    translatedWords.push({
+      translated: translatedWord,
+      original: originalWord,
+      blocked: false
+    });
 
-    const quizContainer = document.getElementById('quiz-container');
-    const translatedWordDiv = document.getElementById('translated-word');
-    const guessInput = document.getElementById('guess-input');
-    const submitButton = document.getElementById('submit-guess');
-    const giveUpButton = document.getElementById('give-up');
-    const quizFeedback = document.getElementById('quiz-feedback');
+    const wordsContainer = document.getElementById('words-container');
+    const card = document.createElement('div');
+    card.className = 'word-card';
+    
+    // Add number overlay
+    const numberOverlay = document.createElement('div');
+    numberOverlay.className = 'word-card-number';
+    numberOverlay.textContent = translatedWords.length;
+    card.appendChild(numberOverlay);
 
-    // Reset and show quiz UI
-    // Extract just the translated text without any HTML or numbers
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = translatedWord;
-    const plainText = tempDiv.querySelector('.transpage-word')?.dataset.translatedText || translatedWord;
-    translatedWordDiv.textContent = plainText;
-    guessInput.value = '';
-    guessInput.disabled = false;
-    submitButton.disabled = false;
-    giveUpButton.disabled = false;
-    quizFeedback.style.display = 'none';
-    quizFeedback.className = 'quiz-feedback';
-    quizContainer.style.display = 'block';
-    guessInput.focus();
+    card.innerHTML += `
+      <div class="word-card-header">
+        <div class="word-container" data-original-length="${originalWord.length}">
+          <span class="word">${translatedWord}</span>
+          <img src="../assets/arrow_right_alt.svg" class="arrow-icon" alt="arrow">
+          <input type="text" class="dotted-input" placeholder="" disabled>
+        </div>
+      </div>
+      <div class="word-card-content">
+        <div class="word-card-buttons">
+          <div class="buttons-left">
+            <button class="word-card-button report-button">Report</button>
+          </div>
+          <div class="buttons-right">
+            <button class="word-card-button skip-button">Skip</button>
+            <button class="word-card-button hint-button">Hint</button>
+            <button class="word-card-button check-button">Check</button>
+          </div>
+        </div>
+        <div class="word-card-feedback-container">
+          <div class="word-card-feedback"></div>
+        </div>
+      </div>
+    `;
 
-    // Define all handlers first
-    const handleEnter = (event) => {
-      if (event.key === 'Enter') {
-        handleSubmit();
-      }
-    };
-
-    // Handle submit button
-    const handleSubmit = () => {
-      const guess = guessInput.value.trim();
-      if (!guess) return;
-
-      // Send the guess to background script for validation
-      chrome.runtime.sendMessage({
-        action: 'checkGuess',
-        guess: guess,
-        originalWord: originalWord
-      }, (response) => {
-        console.log('Guess check response:', response);
-        quizFeedback.style.display = 'block';
-
-        if (response && response.isCorrect) {
-          quizFeedback.textContent = 'Correct! ';
-          quizFeedback.className = 'quiz-feedback correct';
-          guessInput.disabled = true;
-          submitButton.disabled = true;
-          giveUpButton.disabled = true;
-
-          // Hide quiz after delay
-          setTimeout(() => {
-            quizContainer.style.display = 'none';
-          }, 2000);
-        } else {
-          quizFeedback.textContent = 'Try again!';
-          quizFeedback.className = 'quiz-feedback incorrect';
-          guessInput.value = '';
-          guessInput.focus();
+    // Add click handler for header
+    const header = card.querySelector('.word-card-header');
+    const icon = card.querySelector('.arrow-icon');
+    const input = card.querySelector('.dotted-input');
+    const feedback = card.querySelector('.word-card-feedback');
+    
+    header.addEventListener('click', () => {
+      const wasOpen = card.classList.contains('open');
+      
+      // Close all other cards first
+      document.querySelectorAll('.word-card.open').forEach(openCard => {
+        if (openCard !== card) {
+          openCard.classList.remove('open');
+          const otherFeedback = openCard.querySelector('.word-card-feedback');
+          if (otherFeedback) {
+            otherFeedback.className = 'word-card-feedback';
+            otherFeedback.textContent = '';
+          }
+          const otherInput = openCard.querySelector('.dotted-input');
+          otherInput.value = '';
+          otherInput.disabled = true;
         }
       });
-    };
 
-    // Handle give up button
-    const handleGiveUp = () => {
-      quizFeedback.textContent = `The word was: ${originalWord}`;
-      quizFeedback.className = 'quiz-feedback revealed';
-      quizFeedback.style.display = 'block';
-      guessInput.disabled = true;
-      submitButton.disabled = true;
-      giveUpButton.disabled = true;
+      // Toggle current card
+      if (!wasOpen) {
+        card.classList.add('open');
+        input.disabled = false;
+        setTimeout(() => input.focus(), 300);
+      } else {
+        card.classList.remove('open');
+        input.disabled = true;
+        feedback.className = 'word-card-feedback';
+        feedback.textContent = '';
+        input.value = '';
+      }
+    });
 
-      // Hide quiz after delay
+    // Add button handlers
+    const feedbackContainer = card.querySelector('.word-card-feedback-container');
+    
+    // Check button
+    card.querySelector('.check-button').addEventListener('click', () => {
+      const guess = input.value.trim().toLowerCase();
+      const isCorrect = guess === originalWord.toLowerCase();
+      
+      feedback.className = `word-card-feedback visible ${isCorrect ? 'correct' : 'incorrect'}`;
+      feedback.textContent = isCorrect ? 'Correct!' : 'Try again!';
+      
+      if (isCorrect) {
+        setTimeout(() => {
+          feedback.className = 'word-card-feedback';
+          setTimeout(() => {
+            card.classList.remove('open');
+            input.disabled = true;
+          }, 300);
+        }, 1500);
+      } else {
+        input.value = '';
+        input.focus();
+      }
+    });
+
+    // Hint button
+    card.querySelector('.hint-button').addEventListener('click', () => {
+      const hint = originalWord.charAt(0) + '_'.repeat(originalWord.length - 1);
+      feedback.className = 'word-card-feedback visible';
+      feedback.textContent = `Hint: ${hint}`;
+    });
+
+    // Skip button
+    card.querySelector('.skip-button').addEventListener('click', () => {
+      feedback.className = 'word-card-feedback visible';
+      feedback.textContent = `The word was: ${originalWord}`;
+      
       setTimeout(() => {
-        quizContainer.style.display = 'none';
-      }, 3000);
-    };
+        feedback.className = 'word-card-feedback';
+        setTimeout(() => {
+          card.classList.remove('open');
+          input.disabled = true;
+        }, 300);
+      }, 1500);
+    });
 
-    // Remove old event listeners if they exist
-    submitButton.removeEventListener('click', handleSubmit);
-    giveUpButton.removeEventListener('click', handleGiveUp);
-    guessInput.removeEventListener('keypress', handleEnter);
+    // Report button
+    card.querySelector('.report-button').addEventListener('click', () => {
+      feedback.className = 'word-card-feedback visible';
+      feedback.textContent = 'Word reported. Thank you for your feedback!';
+      
+      setTimeout(() => {
+        feedback.className = 'word-card-feedback';
+      }, 2000);
+    });
 
-    // Add new event listeners
-    submitButton.addEventListener('click', handleSubmit);
-    giveUpButton.addEventListener('click', handleGiveUp);
-    guessInput.addEventListener('keypress', handleEnter);
+    // Add card to container
+    wordsContainer.appendChild(card);
+
+    // Set the original word length for the dotted line
+    const wordContainer = card.querySelector('.word-container');
+    wordContainer.style.setProperty('--original-length', originalWord.length);
   }
+
+  function openWordCard(translatedWord) {
+    const cards = document.querySelectorAll('.word-card');
+    cards.forEach(card => {
+      const wordSpan = card.querySelector('.word');
+      if (wordSpan.textContent === translatedWord) {
+        // Close other cards first
+        cards.forEach(otherCard => {
+          if (otherCard !== card && otherCard.classList.contains('open')) {
+            otherCard.classList.remove('open');
+            const feedback = otherCard.querySelector('.word-card-feedback');
+            if (feedback) feedback.style.display = 'none';
+            const otherInput = otherCard.querySelector('.dotted-input');
+            otherInput.value = '';
+            otherInput.disabled = true;
+          }
+        });
+
+        // Open this card
+        card.classList.add('open');
+        // Scroll the card into view
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Focus the input
+        setTimeout(() => {
+          const input = card.querySelector('.dotted-input');
+          input.disabled = false;
+          input.focus();
+        }, 300);
+      }
+    });
+  }
+
+  // Handle difficulty selection
+  const difficultyPicker = document.querySelector('.difficulty-picker');
+  let selectedDifficulty = 'easy';
+
+  difficultyPicker.addEventListener('click', (e) => {
+    const button = e.target.closest('.difficulty-option');
+    if (!button) return;
+
+    // Update selected state
+    document.querySelectorAll('.difficulty-option').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+    button.classList.add('selected');
+    
+    // Store selected difficulty
+    selectedDifficulty = button.dataset.difficulty;
+  });
 });

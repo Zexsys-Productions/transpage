@@ -3,6 +3,18 @@
 <head>
   <title>Transpage</title>
   <style>
+    @font-face {
+      font-family: 'Frutiger Neue';
+      src: url('../fonts/Frutiger Neue LT W1G.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Fineprint Pro';
+      src: url('../fonts/FineprintProRegular.OTF') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
     * {
       box-sizing: border-box;
     }
@@ -22,16 +34,57 @@
     .container {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 8px;
       max-width: 100%;
     }
     .header {
-      margin-bottom: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .header h2 {
       margin: 0;
-      color: #1a73e8;
+      color: #000000;
       font-size: 18px;
+      font-family: 'Frutiger Neue', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header h2::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background: url('../assets/translate.svg') no-repeat center;
+      background-size: contain;
+    }
+    .settings-button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+    }
+    .settings-button:hover {
+      background-color: #f1f1f1;
+    }
+    .settings-button img {
+      width: 16px;
+      height: 16px;
+    }
+    .divider {
+      height: 2px;
+      background-color: #dadce0;
+      margin: 0;
+      width: 100%;
     }
     .form-group {
       display: flex;
@@ -182,49 +235,364 @@
       background-color: #fef7e0;
       color: #b06000;
     }
+    .learn-mode-container {
+      margin: 8px 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .learn-mode-container button {
+      width: auto;
+      flex: 1;
+    }
+    .difficulty-picker {
+      display: flex;
+      overflow: hidden;
+    }
+    .difficulty-option {
+      padding: 6px 12px;
+      font-size: 12px;
+      border: 1px solid #000000;
+      background: #ffffff;
+      cursor: pointer;
+      color: #000000;
+      font-family: 'Frutiger Neue', sans-serif;
+    }
+    .difficulty-option:not(:last-child) {
+      border-right: none;
+    }
+    .difficulty-option:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+    .difficulty-option:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+    .difficulty-option.selected {
+      background: #000000;
+      color: #ffffff;
+      border-color: #000000;
+    }
+    .difficulty-option:hover:not(.selected) {
+      background: #f1f1f1;
+    }
+    button#translateWords {
+      background-color: #34a853;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-family: 'Frutiger Neue', sans-serif;
+    }
+    button#translateWords:hover {
+      background-color: #2d8746;
+    }
+    .learn-mode-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .words-title {
+      font-family: 'Frutiger Neue', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #000000;
+      margin: 12px 0 16px 0;
+      text-align: center;
+      line-height: 1;
+    }
+
+    /* Word Cards Styles */
+    #words-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .word-card {
+      margin: 12px 8px;
+      border-radius: 8px;
+      transform-origin: top;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      font-family: 'Frutiger Neue', sans-serif;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+      position: relative;
+    }
+
+    .word-card.open {
+      background: #000000;
+    }
+
+    .word-card-number {
+      position: absolute;
+      left: -6px;
+      top: -6px;
+      width: 18px;
+      height: 18px;
+      background-color: #ffffff;
+      color: #000000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-family: 'Frutiger Neue', sans-serif;
+      z-index: 2;
+      font-weight: 500;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .word-card.open .word-card-number {
+      background-color: #000000;
+      color: #ffffff;
+    }
+
+    .word-card-header {
+      padding: 16px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: transparent;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    .word-container {
+      display: grid;
+      grid-template-columns: auto 1fr 24px 1fr auto;
+      align-items: center;
+      position: relative;
+      gap: 12px;
+      padding: 4px 24px;
+      transition: color 0.3s ease;
+      background: transparent;
+    }
+
+    .word-card-content {
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .word-card.open .word-card-content {
+      padding: 16px;
+      max-height: 200px;
+    }
+
+    .word-card-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+    }
+
+    .buttons-left {
+      display: flex;
+      gap: 8px;
+    }
+
+    .buttons-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    .word-card-button {
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      font-family: 'Frutiger Neue', sans-serif;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    .report-button {
+      background: #d93025;
+      color: white;
+    }
+
+    .report-button:hover {
+      background: #c5221f;
+    }
+
+    .skip-button {
+      background: #5f6368;
+      color: white;
+    }
+
+    .skip-button:hover {
+      background: #494c50;
+    }
+
+    .hint-button {
+      background: #1a73e8;
+      color: white;
+    }
+
+    .hint-button:hover {
+      background: #1557b0;
+    }
+
+    .check-button {
+      background: #1e8e3e;
+      color: white;
+    }
+
+    .check-button:hover {
+      background: #137333;
+    }
+
+    .word-card-feedback-container {
+      min-height: 0;
+      transition: min-height 0.3s ease;
+    }
+
+    .word-card-feedback {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: 4px;
+      text-align: center;
+      color: #ffffff;
+      font-family: 'Frutiger Neue', sans-serif;
+      transition: all 0.3s ease;
+      transform: translateY(-20px);
+    }
+
+    .word-card-feedback.visible {
+      max-height: 50px;
+      opacity: 1;
+      padding: 8px;
+      transform: translateY(0);
+    }
+
+    .word-card-feedback.correct {
+      background-color: rgba(30, 142, 62, 0.2);
+    }
+
+    .word-card-feedback.incorrect {
+      background-color: rgba(217, 48, 37, 0.2);
+    }
+
+    .word-card-header .word {
+      font-weight: 700;
+      color: #000000;
+      font-family: 'Frutiger Neue', sans-serif;
+      grid-column: 1;
+      transition: color 0.3s ease;
+      font-size: 20px;
+      letter-spacing: -0.2px;
+    }
+
+    .arrow-icon {
+      width: 20px;
+      height: 20px;
+      filter: brightness(0);
+      justify-self: center;
+      grid-column: 3;
+      transition: filter 0.3s ease;
+      margin-top: 2px;
+    }
+
+    .dotted-input {
+      height: 28px;
+      background: #ffffff;
+      border: none;
+      font-family: 'Fineprint Pro', serif;
+      font-size: 16px;
+      color: #000000;
+      width: calc(var(--char-width) * (var(--original-length) + 2));
+      --char-width: 10px;
+      grid-column: 5;
+      padding: 4px 8px;
+      background-image: linear-gradient(to right, #000 20%, rgba(255, 255, 255, 0) 0%);
+      background-position: bottom;
+      background-size: 6px 2px;
+      background-repeat: repeat-x;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 2;
+      cursor: default;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    .dotted-input:disabled {
+      opacity: 1;
+      -webkit-text-fill-color: #000000;
+      pointer-events: none;
+    }
+
+    .dotted-input:focus {
+      outline: none;
+      background-image: linear-gradient(to right, #000 50%, rgba(255, 255, 255, 0) 0%);
+    }
+
+    .word-card.open .word {
+      color: #ffffff;
+    }
+
+    .word-card.open .arrow-icon {
+      filter: brightness(100);
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h2>Transpage</h2>
+      <button class="settings-button">
+        <img src="../assets/settings.svg" alt="Settings">
+      </button>
     </div>
     
-    <div class="form-group">
-      <label for="sourceLanguage">From:</label>
-      <select id="sourceLanguage">
-        <option value="en">English</option>
-      </select>
-    </div>
+    <div class="learn-mode-section">
+      <div class="learn-mode-container">
+        <div class="difficulty-picker">
+          <button class="difficulty-option selected" data-difficulty="easy">Easy</button>
+          <button class="difficulty-option" data-difficulty="medium">Medium</button>
+          <button class="difficulty-option" data-difficulty="hard">Hard</button>
+        </div>
+        <button id="translateWords">Start Learning!</button>
+      </div>
 
-    <div class="form-group">
-      <label for="targetLanguage">To:</label>
-      <select id="targetLanguage">
-        <option value="id">Indonesian</option>
-      </select>
-    </div>
+      <div id="status" class="status"></div>
+      
+      <div id="progress" class="progress">
+        <div class="progress-bar">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
 
-    <div class="button-group">
-      <button id="translateWords">Learn Mode</button>
-    </div>
+      <div class="form-group">
+        <label for="sourceLanguage">From:</label>
+        <select id="sourceLanguage">
+          <option value="en">English</option>
+        </select>
+      </div>
 
-    <div id="status" class="status"></div>
-    
-    <div id="progress" class="progress">
-      <div class="progress-bar">
-        <div class="progress-bar-fill"></div>
+      <div class="form-group">
+        <label for="targetLanguage">To:</label>
+        <select id="targetLanguage">
+          <option value="id">Indonesian</option>
+        </select>
       </div>
     </div>
 
-    <!-- Quiz UI -->
-    <div id="quiz-container">
-      <div id="translated-word" class="translated-word"></div>
-      <input type="text" id="guess-input" placeholder="Type the original English word...">
-      <div class="button-group">
-        <button id="submit-guess">Submit Guess</button>
-        <button id="give-up" class="secondary-button">I Give Up</button>
-      </div>
-      <div id="quiz-feedback" class="quiz-feedback"></div>
+    <div class="divider"></div>
+    
+    <h2 class="words-title">Words</h2>
+
+    <div id="words-container">
+      <!-- Word cards will be dynamically added here -->
     </div>
   </div>
   <script src="sidepanel.js"></script>

@@ -243,6 +243,7 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
         let count = 0;
         let node;
         const textNodes = [];
+        const translatedElements = new Map();
         
         while (node = walker.nextNode()) {
             const text = node.textContent.trim();
@@ -295,12 +296,13 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
 
                         try {
                             const translated = await translator.translate(wordToTranslate);
+                            // Create and set up the span element
                             const span = document.createElement('span');
-                            const textNode = document.createTextNode(translated);
-                            span.appendChild(textNode);
+                            span.textContent = translated;
                             span.dataset.originalWord = wordToTranslate;
-                            span.dataset.translatedText = translated;  // Store the plain translated text
-                            span.className = 'transpage-word';  
+                            span.dataset.translatedText = translated;
+                            span.className = 'transpage-word';
+                            
                             // Add number to words in the main content
                             window.transpageWordCount++;
                             const numberDiv = document.createElement('div');
@@ -308,15 +310,32 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                             numberDiv.textContent = window.transpageWordCount;
                             span.appendChild(numberDiv);
 
-                            translatedSentence = sentence.replace(wordToTranslate, span.outerHTML);
+                            // Replace the word in the sentence with a placeholder
+                            const placeholder = `###TRANSPAGE_WORD_${window.transpageWordCount}###`;
+                            translatedSentence = sentence.replace(wordToTranslate, placeholder);
+
+                            // Send word to sidepanel immediately
+                            chrome.runtime.sendMessage({
+                              action: 'newTranslatedWord',
+                              data: {
+                                translatedWord: translated,
+                                originalWord: wordToTranslate
+                              }
+                            }).catch(error => {
+                              console.error('Error sending word to sidepanel:', error);
+                            });
+
+                            // Store the span for later insertion
+                            translatedElements.set(placeholder, span);
                             count++;
+
+                            // Reset counter - skip 2-4 sentences before next translation
+                            sentencesToSkip = Math.floor(Math.random() * 3) + 2;
                         } catch (error) {
                             console.error('Translation error for word:', wordToTranslate, error);
                         }
 
                         translatedSentences.push(translatedSentence);
-                        // Reset counter - skip 2-4 sentences before next translation
-                        sentencesToSkip = Math.floor(Math.random() * 3) + 2;
                     } else {
                         translatedSentences.push(sentence);
                         // If no eligible words, count this as a skipped sentence
@@ -327,6 +346,62 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
                 // Create a temporary container
                 const container = document.createElement('div');
                 container.innerHTML = translatedSentences.join('');
+                
+                // Replace placeholders with actual elements
+                const replacePlaceholders = (node) => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        const placeholders = Array.from(translatedElements.keys());
+                        let hasPlaceholder = false;
+                        
+                        for (const placeholder of placeholders) {
+                            if (text.includes(placeholder)) {
+                                hasPlaceholder = true;
+                                const parts = text.split(placeholder);
+                                const fragment = document.createDocumentFragment();
+                                
+                                parts.forEach((part, index) => {
+                                    if (part) fragment.appendChild(document.createTextNode(part));
+                                    if (index < parts.length - 1) {
+                                        const span = translatedElements.get(placeholder).cloneNode(true);
+                                        // Add click handler to the span
+                                        span.addEventListener('click', () => {
+                                            chrome.runtime.sendMessage({
+                                                action: 'openWordCard',
+                                                data: {
+                                                    translatedWord: span.dataset.translatedText,
+                                                    originalWord: span.dataset.originalWord
+                                                }
+                                            }).catch(error => {
+                                                console.error('Error sending open card message:', error);
+                                            });
+                                        });
+                                        fragment.appendChild(span);
+                                    }
+                                });
+                                
+                                node.parentNode.replaceChild(fragment, node);
+                                break;
+                            }
+                        }
+                        return hasPlaceholder;
+                    }
+                    return false;
+                };
+
+                // Process all text nodes in the container
+                const processNode = (node) => {
+                    const childNodes = Array.from(node.childNodes);
+                    for (const child of childNodes) {
+                        if (child.nodeType === Node.TEXT_NODE) {
+                            if (replacePlaceholders(child)) continue;
+                        } else {
+                            processNode(child);
+                        }
+                    }
+                };
+
+                processNode(container);
                 
                 // Replace the text content safely
                 while (container.firstChild) {
