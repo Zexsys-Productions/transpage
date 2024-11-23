@@ -7,18 +7,7 @@ console.log('createTranslator in translation:', window.translation && 'createTra
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Content script received message:', request);
 
-    if (request.action === 'translate') {
-        handleTranslation(request.sourceLanguage, request.targetLanguage)
-            .then(result => {
-                console.log('Translation completed:', result);
-                sendResponse(result);
-            })
-            .catch(error => {
-                console.error('Translation failed:', error);
-                sendResponse({ success: false, error: error.message });
-            });
-        return true;
-    } else if (request.action === 'learnMode') {
+    if (request.action === 'learnMode') {
         handleLearnMode(request.sourceLanguage, request.targetLanguage)
             .then(result => {
                 console.log('Learn mode completed:', result);
@@ -31,108 +20,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 });
-
-async function handleTranslation(sourceLanguage, targetLanguage) {
-    console.log('Starting translation...', { sourceLanguage, targetLanguage });
-
-    if (!('translation' in window)) {
-        console.error('Translation API not available in window');
-        throw new Error('Translation API is not available. Make sure you have Chrome 121 or later.');
-    }
-
-    try {
-        console.log('Checking translation capability...');
-        const canTranslate = await window.translation.canTranslate({
-            sourceLanguage,
-            targetLanguage,
-        });
-        console.log('Can translate result:', canTranslate);
-
-        if (canTranslate === 'no') {
-            throw new Error('Translation not supported for these languages');
-        }
-
-        console.log('Creating translator...');
-        const translator = await window.translation.createTranslator({
-            sourceLanguage,
-            targetLanguage,
-        });
-
-        console.log('Testing translation...');
-        const testResult = await translator.translate('Hello, world!');
-        console.log('Test translation result:', testResult);
-
-        const walker = document.createTreeWalker(
-            document.body,
-            NodeFilter.SHOW_TEXT,
-            {
-                acceptNode: (node) => {
-                    // Skip if no parent element
-                    if (!node.parentElement) {
-                        return NodeFilter.FILTER_REJECT;
-                    }
-
-                    // List of elements to exclude (including all header types)
-                    const excludeTags = [
-                        'SCRIPT', 'STYLE', 'NOSCRIPT', 'HEADER', 'FOOTER', 'NAV', 'BUTTON',
-                        'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'TITLE'
-                    ];
-                    
-                    // Check if current element or any parent is in exclude list
-                    let parent = node.parentElement;
-                    while (parent) {
-                        if (excludeTags.includes(parent.tagName)) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        parent = parent.parentElement;
-                    }
-
-                    // Only target paragraph elements
-                    return node.parentElement.tagName === 'P' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-                }
-            }
-        );
-
-        let count = 0;
-        let node;
-        const textNodes = [];
-        
-        while (node = walker.nextNode()) {
-            const text = node.textContent.trim();
-            if (text && text.length > 1) {
-                textNodes.push(node);
-            }
-        }
-
-        console.log(`Found ${textNodes.length} text nodes to translate`);
-
-        for (const node of textNodes) {
-            const text = node.textContent.trim();
-            try {
-                console.log('Translating:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
-                const translated = await translator.translate(text);
-                console.log('Translated to:', translated.substring(0, 50) + (translated.length > 50 ? '...' : ''));
-                
-                const span = document.createElement('span');
-                const textNode = document.createTextNode(translated);
-                span.appendChild(textNode);
-                span.title = text;
-                span.style.cursor = 'help';
-                span.style.backgroundColor = '#f8f9fa';
-                span.style.borderBottom = '1px dotted #666';
-                node.parentNode.replaceChild(span, node);
-                count++;
-            } catch (error) {
-                console.error('Translation error for text:', text.substring(0, 50), error);
-            }
-        }
-
-        return { success: true, count };
-    } catch (error) {
-        console.error('Translation error:', error);
-        throw error;
-    }
-}
 
 async function handleLearnMode(sourceLanguage, targetLanguage) {
     console.log('Starting learn mode...', { sourceLanguage, targetLanguage });
