@@ -7,6 +7,14 @@ console.log('createTranslator in translation:', window.translation && 'createTra
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Content script received message:', request);
 
+    if (request.action === 'refreshPage') {
+        // Send response before refreshing
+        sendResponse();
+        // Refresh the page
+        window.location.reload();
+        return true;
+    }
+
     if (request.action === 'learnMode') {
         handleLearnMode(request.sourceLanguage, request.targetLanguage)
             .then(result => {
@@ -14,10 +22,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse(result);
             })
             .catch(error => {
-                console.error('Learn mode failed:', error);
-                sendResponse({ success: false, error: error.message });
+                console.error('Learn mode error:', error);
+                sendResponse({ error: error.message });
             });
-        return true;
+        return true; // Will respond asynchronously
     }
 });
 

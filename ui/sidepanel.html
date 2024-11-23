@@ -236,28 +236,32 @@
       color: #b06000;
     }
     .learn-mode-container {
-      margin: 8px 0;
       display: flex;
-      gap: 8px;
       align-items: center;
+      margin-bottom: 16px;
+      gap: 8px;
     }
-    .learn-mode-container button {
-      width: auto;
-      flex: 1;
-    }
+
     .difficulty-picker {
       display: flex;
       overflow: hidden;
+      border-radius: 4px;
+      width: 50%;
+      border: 1px solid #dadce0;
     }
+
     .difficulty-option {
       padding: 6px 12px;
       font-size: 12px;
-      border: 1px solid #000000;
+      border: none;
       background: #ffffff;
-      cursor: pointer;
       color: #000000;
+      cursor: pointer;
+      flex: 1;
+      white-space: nowrap;
       font-family: 'Frutiger Neue', sans-serif;
     }
+
     .difficulty-option:not(:last-child) {
       border-right: none;
     }
@@ -267,23 +271,40 @@
     .difficulty-option:last-child {
       border-radius: 0 4px 4px 0;
     }
+    .difficulty-option:hover:not(.selected) {
+      background: #f1f1f1;
+    }
+
     .difficulty-option.selected {
       background: #000000;
       color: #ffffff;
       border-color: #000000;
     }
-    .difficulty-option:hover:not(.selected) {
-      background: #f1f1f1;
-    }
-    button#translateWords {
-      background-color: #34a853;
+
+    .learn-mode-button {
       padding: 6px 12px;
-      font-size: 12px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
       font-family: 'Frutiger Neue', sans-serif;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      white-space: nowrap;
+      width: 50%;
     }
-    button#translateWords:hover {
-      background-color: #2d8746;
+
+    .learn-mode-button:hover {
+      background-color: #1557b0;
     }
+
+    .learn-mode-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
     .learn-mode-section {
       display: flex;
       flex-direction: column;
@@ -312,15 +333,22 @@
       margin: 12px 8px;
       border-radius: 8px;
       transform-origin: top;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       font-family: 'Frutiger Neue', sans-serif;
       transition: all 0.3s ease;
       background: #f8f9fa;
       position: relative;
     }
 
+    .word-card:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px);
+    }
+
     .word-card.open {
       background: #000000;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      transform: translateY(-4px);
     }
 
     .word-card-number {
@@ -340,6 +368,17 @@
       z-index: 2;
       font-weight: 500;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .word-card.correct .word-card-number {
+      background-color: #1e8e3e;
+      color: #ffffff;
+    }
+
+    .word-card.incorrect .word-card-number {
+      background-color: #d93025;
+      color: #ffffff;
     }
 
     .word-card.open .word-card-number {
@@ -393,23 +432,35 @@
 
     .buttons-left {
       display: flex;
-      gap: 8px;
+      gap: 4px;
     }
 
     .buttons-right {
       display: flex;
-      gap: 8px;
+      gap: 4px;
     }
 
     .word-card-button {
-      padding: 8px 16px;
+      padding: 6px 10px;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 12px;
       cursor: pointer;
       border: none;
       font-family: 'Frutiger Neue', sans-serif;
       font-weight: bold;
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      min-width: fit-content;
+    }
+
+    .word-card-button img {
+      width: 14px;
+      height: 14px;
+      filter: brightness(100);
+      flex-shrink: 0;
     }
 
     .report-button {
@@ -543,6 +594,122 @@
     .word-card.open .arrow-icon {
       filter: brightness(100);
     }
+
+    /* Add settings menu styles */
+    .settings-menu {
+      position: fixed;
+      bottom: -80%;
+      left: 0;
+      right: 0;
+      height: 80%;
+      background-color: #ffffff;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      border-top-left-radius: 12px;
+      border-top-right-radius: 12px;
+      z-index: 1000;
+      padding: 20px;
+      transform: translateY(0);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .settings-menu.open {
+      transform: translateY(-95%);
+    }
+
+    .settings-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .settings-menu-title {
+      font-family: 'Frutiger Neue', sans-serif;
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .settings-section {
+      margin-bottom: 24px;
+    }
+
+    .settings-section-title {
+      font-family: 'Frutiger Neue', sans-serif;
+      font-size: 14px;
+      color: #5f6368;
+      margin: 0 0 12px 0;
+    }
+
+    .close-settings {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* Confirmation popup styles */
+    .confirmation-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 2000;
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+    }
+
+    .confirmation-popup.visible {
+      display: block;
+    }
+
+    .confirmation-popup-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .confirmation-popup-button {
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      font-family: 'Frutiger Neue', sans-serif;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    .confirm-button {
+      background: #1a73e8;
+      color: white;
+    }
+
+    .cancel-button {
+      background: #e8eaed;
+      color: #3c4043;
+    }
+
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1999;
+    }
+
+    .popup-overlay.visible {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -561,7 +728,7 @@
           <button class="difficulty-option" data-difficulty="medium">Medium</button>
           <button class="difficulty-option" data-difficulty="hard">Hard</button>
         </div>
-        <button id="translateWords">Start Learning!</button>
+        <button id="start-learning" class="learn-mode-button">Learn</button>
       </div>
 
       <div id="status" class="status"></div>
@@ -571,7 +738,28 @@
           <div class="progress-bar-fill"></div>
         </div>
       </div>
+    </div>
 
+    <div class="divider"></div>
+    
+    <h2 class="words-title">Words</h2>
+
+    <div id="words-container">
+      <!-- Word cards will be dynamically added here -->
+    </div>
+  </div>
+  
+  <!-- Settings menu -->
+  <div class="settings-menu">
+    <div class="settings-menu-header">
+      <h3 class="settings-menu-title">Settings</h3>
+      <button class="close-settings">
+        <img src="../assets/close.svg" alt="Close">
+      </button>
+    </div>
+
+    <div class="settings-section">
+      <h4 class="settings-section-title">Language Settings</h4>
       <div class="form-group">
         <label for="sourceLanguage">From:</label>
         <select id="sourceLanguage">
@@ -586,15 +774,17 @@
         </select>
       </div>
     </div>
+  </div>
 
-    <div class="divider"></div>
-    
-    <h2 class="words-title">Words</h2>
-
-    <div id="words-container">
-      <!-- Word cards will be dynamically added here -->
+  <div class="popup-overlay"></div>
+  <div class="confirmation-popup">
+    <p>This will refresh the page to restart learning mode. Continue?</p>
+    <div class="confirmation-popup-buttons">
+      <button class="confirmation-popup-button cancel-button">Cancel</button>
+      <button class="confirmation-popup-button confirm-button">Continue</button>
     </div>
   </div>
+
   <script src="sidepanel.js"></script>
 </body>
 </html>
