@@ -154,6 +154,7 @@
       font-size: 13px;
       display: none;
       word-wrap: break-word;
+      font-family: 'Frutiger Neue', sans-serif;
     }
     .status.success {
       background-color: #e6f4ea;
@@ -402,8 +403,33 @@
       position: relative;
       gap: 12px;
       padding: 4px 24px;
-      transition: color 0.3s ease;
+      transition: all 0.3s ease;
       background: transparent;
+    }
+
+    .word-container.vertical {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      justify-items: center;
+      gap: 8px;
+    }
+
+    .word-container.vertical .word {
+      grid-row: 1;
+      text-align: center;
+      width: 100%;
+    }
+
+    .word-container.vertical .arrow-icon {
+      grid-row: 2;
+      transform: rotate(90deg);
+      margin: 4px 0;
+    }
+
+    .word-container.vertical .dotted-input {
+      grid-row: 3;
+      width: 80% !important;
+      max-width: 300px;
     }
 
     .word-card-content {
@@ -564,14 +590,14 @@
       --char-width: 10px;
       grid-column: 5;
       padding: 4px 8px;
-      background-image: linear-gradient(to right, #000 20%, rgba(255, 255, 255, 0) 0%);
+      background-image: radial-gradient(circle, #000 30%, transparent 40%);
       background-position: bottom;
-      background-size: 6px 2px;
+      background-size: 4px 2px;
       background-repeat: repeat-x;
       transition: all 0.3s ease;
       position: relative;
       z-index: 2;
-      cursor: default;
+      cursor: text;
       border-radius: 4px;
       margin-top: 2px;
     }
@@ -584,7 +610,7 @@
 
     .dotted-input:focus {
       outline: none;
-      background-image: linear-gradient(to right, #000 50%, rgba(255, 255, 255, 0) 0%);
+      background-image: radial-gradient(circle, #000 30%, transparent 40%);
     }
 
     .word-card.open .word {
@@ -598,22 +624,48 @@
     /* Add settings menu styles */
     .settings-menu {
       position: fixed;
-      bottom: -80%;
-      left: 0;
-      right: 0;
-      height: 80%;
+      top: 50%;
+      left: 50%;
+      width: 90%;
+      max-width: 500px;
+      height: auto;
+      max-height: 80vh;
       background-color: #ffffff;
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-      border-top-left-radius: 12px;
-      border-top-right-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+      border-radius: 16px;
       z-index: 1000;
-      padding: 20px;
-      transform: translateY(0);
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 24px;
+      transform: translate(-50%, -50%) scale(0.95);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow-y: auto;
     }
 
     .settings-menu.open {
-      transform: translateY(-95%);
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Add overlay background */
+    .settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .settings-overlay.open {
+      opacity: 1;
+      visibility: visible;
     }
 
     .settings-menu-header {
@@ -775,7 +827,7 @@
       </div>
     </div>
   </div>
-
+  <div class="settings-overlay"></div>
   <div class="popup-overlay"></div>
   <div class="confirmation-popup">
     <p>This will refresh the page to restart learning mode. Continue?</p>

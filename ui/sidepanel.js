@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsButton = document.querySelector('.settings-button');
   const settingsMenu = document.querySelector('.settings-menu');
   const closeSettingsButton = document.querySelector('.close-settings');
+  const settingsOverlay = document.querySelector('.settings-overlay');
   const sourceLanguageSelect = document.getElementById('sourceLanguage');
   const targetLanguageSelect = document.getElementById('targetLanguage');
 
@@ -16,32 +17,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressDiv = document.getElementById('progress');
 
   // Settings menu functionality
-  if (settingsButton && settingsMenu && closeSettingsButton) {
+  if (settingsButton && settingsMenu && closeSettingsButton && settingsOverlay) {
     console.log('Setting up settings menu');
     
-    settingsButton.addEventListener('click', () => {
-      console.log('Settings button clicked');
-      settingsMenu.classList.toggle('open');
-    });
+    function openSettings() {
+      settingsMenu.classList.add('open');
+      settingsOverlay.classList.add('open');
+    }
 
-    closeSettingsButton.addEventListener('click', () => {
-      console.log('Close button clicked');
+    function closeSettings() {
       settingsMenu.classList.remove('open');
-    });
+      settingsOverlay.classList.remove('open');
+    }
+
+    settingsButton.addEventListener('click', openSettings);
+    closeSettingsButton.addEventListener('click', closeSettings);
+    settingsOverlay.addEventListener('click', closeSettings);
 
     // Close settings menu when clicking outside
     document.addEventListener('click', (event) => {
       if (!settingsMenu.contains(event.target) && 
           !settingsButton.contains(event.target) && 
+          !settingsOverlay.contains(event.target) && 
           settingsMenu.classList.contains('open')) {
-        settingsMenu.classList.remove('open');
+        closeSettings();
       }
     });
   } else {
     console.error('Settings elements not found:', {
       settingsButton,
       settingsMenu,
-      closeSettingsButton
+      closeSettingsButton,
+      settingsOverlay
     });
   }
 
@@ -133,9 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (response && response.success) {
-        showStatus('Learning mode started! Words will appear as you hover over them.', 'success');
+        showStatus('Learning mode started! Click highlighted words to learn them.', 'success');
       } else {
-        showStatus('Failed to start learning mode. Please try refreshing.', 'error');
+        showStatus('Failed to start learning mode. Please try refreshing the page.', 'error');
       }
     } catch (error) {
       console.error('Learn mode error:', error);
@@ -223,41 +230,76 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
+      // Add card to container
+      wordsContainer.appendChild(card);
+
+      // Get elements once and reuse them
+      const wordContainer = card.querySelector('.word-container');
+      const wordSpan = wordContainer.querySelector('.word');
+      
+      // Set the original word length for the dotted line
+      wordContainer.style.setProperty('--original-length', word.original.length);
+      
+      // Function to check if word is too long
+      const checkWordLength = () => {
+        const containerWidth = wordContainer.offsetWidth - 48; // Subtract padding
+        const wordWidth = wordSpan.offsetWidth;
+        const estimatedInputWidth = word.original.length * 12; // Rough estimate of input width
+        
+        // If word is longer than 40% of container or total width would exceed container
+        if (wordWidth > containerWidth * 0.4 || (wordWidth + 60 + estimatedInputWidth) > containerWidth) {
+          wordContainer.classList.add('vertical');
+        } else {
+          wordContainer.classList.remove('vertical');
+        }
+      };
+
+      // Check on creation and window resize
+      setTimeout(checkWordLength, 0); // Check after DOM paint
+      window.addEventListener('resize', checkWordLength);
+
       // Add click handler for header
       const header = card.querySelector('.word-card-header');
       const icon = card.querySelector('.arrow-icon');
       const input = card.querySelector('.dotted-input');
       const feedback = card.querySelector('.word-card-feedback');
       
-      header.addEventListener('click', () => {
-        const wasOpen = card.classList.contains('open');
-        
-        // Close all other cards first
+      header.addEventListener('click', (event) => {
+        // If clicking on the input, don't toggle the card
+        if (event.target === input) {
+          return;
+        }
+
+        // Close any other open cards
         document.querySelectorAll('.word-card.open').forEach(openCard => {
           if (openCard !== card) {
             openCard.classList.remove('open');
             const otherFeedback = openCard.querySelector('.word-card-feedback');
             if (otherFeedback) {
               otherFeedback.className = 'word-card-feedback';
-              otherFeedback.textContent = '';
             }
             const otherInput = openCard.querySelector('.dotted-input');
-            otherInput.value = '';
             otherInput.disabled = true;
+            otherInput.blur();
           }
         });
 
-        // Toggle current card
-        if (!wasOpen) {
+        // Only open the card, never close it through header click
+        if (!card.classList.contains('open')) {
           card.classList.add('open');
           input.disabled = false;
-          setTimeout(() => input.focus(), 300);
-        } else {
+          input.focus();
+          feedback.className = 'word-card-feedback';
+        }
+      });
+
+      // Add click handler to document to close cards when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!card.contains(event.target) && card.classList.contains('open')) {
           card.classList.remove('open');
           input.disabled = true;
+          input.blur();
           feedback.className = 'word-card-feedback';
-          feedback.textContent = '';
-          input.value = '';
         }
       });
 
@@ -299,13 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
           feedback.className = 'word-card-feedback';
         }, 2000);
       });
-
-      // Add card to container
-      wordsContainer.appendChild(card);
-
-      // Set the original word length for the dotted line
-      const wordContainer = card.querySelector('.word-container');
-      wordContainer.style.setProperty('--original-length', word.original.length);
     });
   }
 
