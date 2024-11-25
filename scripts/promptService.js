@@ -102,7 +102,7 @@ class PromptService {
                 console.log('Using fallback API for prompt');
                 if (streaming && onChunk) {
                     let fullResponse = '';
-                    const response = await this.session.generateStream(text);
+                    const response = await this.session.prompt(text, { stream: true });
                     for await (const chunk of response) {
                         console.log('Received chunk:', chunk);
                         fullResponse += chunk;
@@ -111,7 +111,7 @@ class PromptService {
                     console.log('Full response:', fullResponse);
                     return { success: true, response: fullResponse };
                 } else {
-                    const response = await this.session.generate(text);
+                    const response = await this.session.prompt(text);
                     console.log('Full response:', response);
                     return { success: true, response };
                 }
