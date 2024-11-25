@@ -100,17 +100,6 @@ class PromptService {
             if (this.usingFallback) {
                 // Using alternative AI API
                 console.log('Using fallback API for prompt');
-                const response = await this.session.prompt(text);
-                console.log('Full response:', response);
-                
-                if (streaming && onChunk) {
-                    onChunk(response);
-                }
-                
-                return { success: true, response };
-            } else {
-                // Using Chrome AI Origin Trial
-                console.log('Using Chrome AI for prompt');
                 if (streaming && onChunk) {
                     let fullResponse = '';
                     const response = await this.session.generateStream(text);
@@ -123,6 +112,31 @@ class PromptService {
                     return { success: true, response: fullResponse };
                 } else {
                     const response = await this.session.generate(text);
+                    console.log('Full response:', response);
+                    return { success: true, response };
+                }
+            } else {
+                // Using Chrome AI Origin Trial
+                console.log('Using Chrome AI for prompt');
+                if (streaming && onChunk) {
+                    let fullResponse = '';
+                    let previousChunk = '';
+                    const response = await this.session.promptStreaming(text);
+                    for await (const chunk of response) {
+                        console.log('Received raw chunk:', chunk);
+                        // Extract only the new content from the chunk
+                        const newContent = chunk.startsWith(previousChunk) 
+                            ? chunk.slice(previousChunk.length) 
+                            : chunk;
+                        console.log('New content:', newContent);
+                        fullResponse += newContent;
+                        onChunk(newContent);
+                        previousChunk = chunk;
+                    }
+                    console.log('Full response:', fullResponse);
+                    return { success: true, response: fullResponse };
+                } else {
+                    const response = await this.session.prompt(text);
                     console.log('Full response:', response);
                     return { success: true, response };
                 }
