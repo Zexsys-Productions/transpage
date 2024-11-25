@@ -7,7 +7,8 @@
     "sidePanel",
     "tabs",
     "activeTab",
-    "scripting"
+    "scripting",
+    "aiLanguageModelOriginTrial"
   ],
   "background": {
     "service_worker": "scripts/background.js",
@@ -32,5 +33,8 @@
     "default_title": "Transpage"
   },
   "host_permissions": ["<all_urls>"],
-  "trial_tokens": ["Ag2e6dto79AYkZ6wMg8h+fLixdDVoKapWggVhlu3v7/GRf7U9PuGxSEbvcNCei0T5asY3usg35TKGEWIWKQMOQ8AAABveyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYm5kb2dwaG9oaG9ubGxubGVpZWZrbGJmaWFqYWZpZmgiLCJmZWF0dXJlIjoiVHJhbnNsYXRpb25BUEkiLCJleHBpcnkiOjE3NTMxNDI0MDB9"]
+  "trial_tokens": [
+    "Ag2e6dto79AYkZ6wMg8h+fLixdDVoKapWggVhlu3v7/GRf7U9PuGxSEbvcNCei0T5asY3usg35TKGEWIWKQMOQ8AAABveyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYm5kb2dwaG9oaG9ubGxubGVpZWZrbGJmaWFqYWZpZmgiLCJmZWF0dXJlIjoiVHJhbnNsYXRpb25BUEkiLCJleHBpcnkiOjE3NTMxNDI0MDB9",
+    "AjixqOdLKo92PM+yCmX/0sau+bZ59b7yuu2MS7seuNB/3BenjBJfHtVMsyPvL8AA7GL+B064oUfaiQsE2HzPZwgAAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYm5kb2dwaG9oaG9ubGxubGVpZWZrbGJmaWFqYWZpZmgiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"
+  ]
 }

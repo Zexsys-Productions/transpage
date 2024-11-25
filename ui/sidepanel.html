@@ -38,15 +38,15 @@
       max-width: 100%;
     }
     .header {
-      margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 12px 16px;
     }
     .header h2 {
       margin: 0;
-      color: #000000;
       font-size: 18px;
+      font-weight: 500;
       font-family: 'Frutiger Neue', sans-serif;
       display: flex;
       align-items: center;
@@ -59,6 +59,26 @@
       height: 20px;
       background: url('../assets/translate.svg') no-repeat center;
       background-size: contain;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
+    #settingsButton {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+    #settingsButton:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+    #settingsButton img {
+      width: 20px;
+      height: 20px;
+      display: block;
     }
     .settings-button {
       background: transparent;
@@ -528,6 +548,7 @@
     .word-card-feedback-container {
       min-height: 0;
       transition: min-height 0.3s ease;
+      margin-top: 8px;
     }
 
     .word-card-feedback {
@@ -542,6 +563,11 @@
       font-family: 'Frutiger Neue', sans-serif;
       transition: all 0.3s ease;
       transform: translateY(-20px);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 8px;
     }
 
     .word-card-feedback.visible {
@@ -549,14 +575,17 @@
       opacity: 1;
       padding: 8px;
       transform: translateY(0);
+      display: block;
     }
 
     .word-card-feedback.correct {
-      background-color: rgba(30, 142, 62, 0.2);
+      background-color: #e6f4ea;
+      color: #1e8e3e;
     }
 
     .word-card-feedback.incorrect {
-      background-color: rgba(217, 48, 37, 0.2);
+      background-color: #fce8e6;
+      color: #d93025;
     }
 
     .word-card-header .word {
@@ -621,82 +650,187 @@
       filter: brightness(100);
     }
 
+    .word-card-ai-feedback {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+      margin-top: 8px;
+      background-color: #f8f9fa;
+      border: 1px solid #dadce0;
+      color: #5f6368;
+    }
+
+    .word-card-ai-feedback.visible {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .word-card-ai-feedback .ai-score {
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .word-card-ai-feedback .ai-icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    .word-card-ai-feedback.high-score {
+      background-color: #e6f4ea;
+      border-color: #1e8e3e;
+      color: #1e8e3e;
+    }
+
+    .word-card-ai-feedback.low-score {
+      background-color: #fce8e6;
+      border-color: #d93025;
+      color: #d93025;
+    }
+
     /* Add settings menu styles */
-    .settings-menu {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      width: 90%;
-      max-width: 500px;
-      height: auto;
-      max-height: 80vh;
-      background-color: #ffffff;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-      border-radius: 16px;
-      z-index: 1000;
-      padding: 24px;
-      transform: translate(-50%, -50%) scale(0.95);
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      overflow-y: auto;
-    }
-
-    .settings-menu.open {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-      visibility: visible;
-    }
-
-    /* Add overlay background */
     .settings-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.5);
       z-index: 999;
       opacity: 0;
       visibility: hidden;
-      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+      transition: all 0.3s ease-in-out;
     }
 
-    .settings-overlay.open {
+    .settings-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      max-width: 400px;
+      width: 90%;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #settings {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 998;
+      pointer-events: none;
+    }
+
+    #settings.visible {
+      pointer-events: auto;
+    }
+
+    #settings.visible .settings-overlay {
       opacity: 1;
       visibility: visible;
     }
 
-    .settings-menu-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
+    #settings.visible .settings-container {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
     }
 
-    .settings-menu-title {
-      font-family: 'Frutiger Neue', sans-serif;
-      font-size: 18px;
-      margin: 0;
+    .settings-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-close:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+      transform: scale(1.05);
+    }
+
+    .settings-close:active {
+      background-color: rgba(0, 0, 0, 0.12);
+      transform: scale(0.95);
+    }
+
+    .settings-close img {
+      width: 20px;
+      height: 20px;
+      color: #666;
+      transition: color 0.2s ease-in-out;
+    }
+
+    .settings-close:hover img {
+      color: #333;
     }
 
     .settings-section {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+    }
+    
+    .ai-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
-    .settings-section-title {
-      font-family: 'Frutiger Neue', sans-serif;
+    .status-text {
       font-size: 14px;
-      color: #5f6368;
-      margin: 0 0 12px 0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background-color: #f1f3f4;
     }
 
-    .close-settings {
-      background: transparent;
+    .status-text.available {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+
+    .status-text.unavailable {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+
+    .check-ai-button {
+      padding: 8px 16px;
       border: none;
+      border-radius: 4px;
+      background-color: #1a73e8;
+      color: white;
       cursor: pointer;
-      padding: 4px;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .check-ai-button:hover {
+      background-color: #1557b0;
+    }
+
+    .check-ai-button:disabled {
+      background-color: #dadce0;
+      cursor: not-allowed;
     }
 
     /* Confirmation popup styles */
@@ -762,15 +896,127 @@
     .popup-overlay.visible {
       display: block;
     }
+
+    .prompt-test-section {
+      margin: 16px 0;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .prompt-test-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      color: #202124;
+      font-family: 'Frutiger Neue', sans-serif;
+    }
+
+    .prompt-input-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    #promptInput {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 60px;
+      font-family: inherit;
+    }
+
+    #promptInput:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+
+    .send-prompt-button {
+      width: auto !important;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      height: 28px;
+      min-width: 70px;
+      transition: background-color 0.2s;
+    }
+
+    .send-prompt-button img {
+      width: 14px;
+      height: 14px;
+      filter: brightness(0) invert(1);
+    }
+
+    .send-prompt-button:hover {
+      background: #1557b0;
+    }
+
+    .send-prompt-button:disabled {
+      background: #dadce0;
+      cursor: not-allowed;
+    }
+
+    .prompt-response {
+      padding: 12px;
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 60px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .prompt-response.visible {
+      display: block;
+    }
+
+    .prompt-response.loading {
+      position: relative;
+      color: transparent;
+    }
+
+    .prompt-response.loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      border: 3px solid #dadce0;
+      border-top: 3px solid #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <h2>Transpage</h2>
-      <button class="settings-button">
-        <img src="../assets/settings.svg" alt="Settings">
-      </button>
+      <div class="header-right">
+        <button id="settingsButton">
+          <img src="../assets/settings.svg" alt="Settings">
+        </button>
+      </div>
     </div>
     
     <div class="learn-mode-section">
@@ -799,35 +1045,58 @@
     <div id="words-container">
       <!-- Word cards will be dynamically added here -->
     </div>
+
+    <div class="prompt-test-section">
+      <h3>Prompt API Test</h3>
+      <div class="prompt-input-container">
+        <textarea id="promptInput" placeholder="Enter your prompt here..." rows="3"></textarea>
+        <button id="sendPrompt" class="send-prompt-button">
+          <img src="../assets/send.svg" alt="Send">Send
+        </button>
+      </div>
+      <div id="promptResponse" class="prompt-response"></div>
+    </div>
+
+    <div class="divider"></div>
   </div>
   
   <!-- Settings menu -->
-  <div class="settings-menu">
-    <div class="settings-menu-header">
-      <h3 class="settings-menu-title">Settings</h3>
-      <button class="close-settings">
+  <div id="settings">
+    <div class="settings-overlay"></div>
+    <div class="settings-container">
+      <button class="settings-close">
         <img src="../assets/close.svg" alt="Close">
       </button>
-    </div>
+      <h2>Settings</h2>
+      <div class="settings-section">
+        <h4 class="settings-section-title">Language Settings</h4>
+        <div class="form-group">
+          <label for="sourceLanguage">From:</label>
+          <select id="sourceLanguage">
+            <option value="en">English</option>
+          </select>
+        </div>
 
-    <div class="settings-section">
-      <h4 class="settings-section-title">Language Settings</h4>
-      <div class="form-group">
-        <label for="sourceLanguage">From:</label>
-        <select id="sourceLanguage">
-          <option value="en">English</option>
-        </select>
+        <div class="form-group">
+          <label for="targetLanguage">To:</label>
+          <select id="targetLanguage">
+            <option value="id">Indonesian</option>
+          </select>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="targetLanguage">To:</label>
-        <select id="targetLanguage">
-          <option value="id">Indonesian</option>
-        </select>
+      <div class="settings-section">
+        <h4 class="settings-section-title">AI Assistant</h4>
+        <div class="form-group">
+          <div class="ai-status">
+            <span>AI Model Status:</span>
+            <span id="aiModelStatus" class="status-text">Checking...</span>
+          </div>
+          <button id="checkAiModel" class="check-ai-button">Check Availability</button>
+        </div>
       </div>
     </div>
   </div>
-  <div class="settings-overlay"></div>
   <div class="popup-overlay"></div>
   <div class="confirmation-popup">
     <p>This will refresh the page to restart learning mode. Continue?</p>
@@ -837,6 +1106,6 @@
     </div>
   </div>
 
-  <script src="sidepanel.js"></script>
+  <script src="sidepanel.js" type="module"></script>
 </body>
 </html>

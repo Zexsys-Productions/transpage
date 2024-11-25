@@ -1,13 +1,15 @@
+import { promptService } from '../scripts/promptService.js';
+
 console.log('Transpage sidepanel loaded');
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOM Content Loaded');
   
   // Settings menu elements
-  const settingsButton = document.querySelector('.settings-button');
-  const settingsMenu = document.querySelector('.settings-menu');
-  const closeSettingsButton = document.querySelector('.close-settings');
-  const settingsOverlay = document.querySelector('.settings-overlay');
+  const settingsButton = document.getElementById('settingsButton');
+  const settingsElement = document.getElementById('settings');
+  const settingsOverlay = settingsElement?.querySelector('.settings-overlay');
+  const closeButton = settingsElement?.querySelector('.settings-close');
   const sourceLanguageSelect = document.getElementById('sourceLanguage');
   const targetLanguageSelect = document.getElementById('targetLanguage');
 
@@ -17,38 +19,111 @@ document.addEventListener('DOMContentLoaded', () => {
   const progressDiv = document.getElementById('progress');
 
   // Settings menu functionality
-  if (settingsButton && settingsMenu && closeSettingsButton && settingsOverlay) {
+  if (settingsButton && settingsElement && closeButton && settingsOverlay) {
     console.log('Setting up settings menu');
     
     function openSettings() {
-      settingsMenu.classList.add('open');
-      settingsOverlay.classList.add('open');
+      settingsElement.classList.add('visible');
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
 
     function closeSettings() {
-      settingsMenu.classList.remove('open');
-      settingsOverlay.classList.remove('open');
+      settingsElement.classList.remove('visible');
+      document.body.style.overflow = ''; // Restore scrolling
     }
 
     settingsButton.addEventListener('click', openSettings);
-    closeSettingsButton.addEventListener('click', closeSettings);
+    closeButton.addEventListener('click', closeSettings);
     settingsOverlay.addEventListener('click', closeSettings);
 
-    // Close settings menu when clicking outside
+    // Close settings when clicking outside
     document.addEventListener('click', (event) => {
-      if (!settingsMenu.contains(event.target) && 
+      if (!settingsElement.contains(event.target) && 
           !settingsButton.contains(event.target) && 
-          !settingsOverlay.contains(event.target) && 
-          settingsMenu.classList.contains('open')) {
+          settingsElement.classList.contains('visible')) {
         closeSettings();
       }
     });
   } else {
     console.error('Settings elements not found:', {
       settingsButton,
-      settingsMenu,
-      closeSettingsButton,
+      settingsElement,
+      closeButton,
       settingsOverlay
+    });
+  }
+
+  // AI Model Status Check
+  const aiModelStatus = document.getElementById('aiModelStatus');
+  const checkAiButton = document.getElementById('checkAiModel');
+  const promptInput = document.getElementById('promptInput');
+  const sendPromptButton = document.getElementById('sendPrompt');
+  const promptResponse = document.getElementById('promptResponse');
+
+  async function updateAiModelStatus() {
+    checkAiButton.disabled = true;
+    aiModelStatus.textContent = 'Checking...';
+    aiModelStatus.className = 'status-text';
+
+    try {
+      const { available, status } = await promptService.checkAvailability();
+      aiModelStatus.textContent = status;
+      aiModelStatus.className = `status-text ${available ? 'available' : 'unavailable'}`;
+    } catch (error) {
+      aiModelStatus.textContent = 'Error checking availability';
+      aiModelStatus.className = 'status-text unavailable';
+    }
+
+    checkAiButton.disabled = false;
+  }
+
+  checkAiButton.addEventListener('click', updateAiModelStatus);
+  
+  // Initial check
+  updateAiModelStatus();
+
+  // Handle prompt test
+  if (sendPromptButton && promptInput && promptResponse) {
+    sendPromptButton.addEventListener('click', async () => {
+      const text = promptInput.value.trim();
+      if (!text) return;
+
+      // Show loading state
+      sendPromptButton.disabled = true;
+      promptResponse.className = 'prompt-response visible';
+      promptResponse.textContent = '';
+
+      try {
+        const { success, response, error } = await promptService.prompt(text, {
+          streaming: true,
+          onChunk: (chunk) => {
+            promptResponse.textContent += chunk;
+          }
+        });
+        
+        if (!success) {
+          promptResponse.textContent = 'Error: ' + error;
+        }
+      } catch (error) {
+        promptResponse.textContent = 'Error: ' + error.message;
+      } finally {
+        sendPromptButton.disabled = false;
+      }
+    });
+
+    // Enable/disable send button based on input
+    promptInput.addEventListener('input', () => {
+      sendPromptButton.disabled = !promptInput.value.trim();
+    });
+
+    // Handle Enter key (Shift+Enter for new line)
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendPromptButton.disabled) {
+          sendPromptButton.click();
+        }
+      }
     });
   }
 
@@ -226,6 +301,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="word-card-feedback-container">
             <div class="word-card-feedback"></div>
+            <div class="word-card-ai-feedback">
+              <img src="../assets/smart_toy.svg" class="ai-icon" alt="AI">
+              <span>AI Similarity Score: <span class="ai-score">...</span></span>
+            </div>
           </div>
         </div>
       `;
@@ -344,12 +423,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function checkAnswer(wordCard, word) {
+  async function checkAnswer(wordCard, word) {
     const userAnswer = wordCard.querySelector('.dotted-input').value.trim().toLowerCase();
     const correctAnswer = word.original.toLowerCase();
     const isCorrect = userAnswer === correctAnswer;
     
+    // Show regular feedback
     showFeedback(wordCard, isCorrect ? 'Correct!' : `Incorrect. The answer is: ${correctAnswer}`, isCorrect);
+    
+    // Show AI feedback
+    try {
+      const aiFeedback = wordCard.querySelector('.word-card-ai-feedback');
+      const aiScore = aiFeedback.querySelector('.ai-score');
+      
+      aiFeedback.className = 'word-card-ai-feedback visible';
+      aiScore.textContent = '...';
+
+      const { success, score } = await promptService.checkSimilarity(userAnswer, correctAnswer);
+      
+      if (success) {
+        aiScore.textContent = score + '%';
+        aiFeedback.classList.add(score >= 70 ? 'high-score' : 'low-score');
+      } else {
+        aiFeedback.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('AI similarity check failed:', error);
+    }
     
     // Add correct/incorrect class and close card after delay
     setTimeout(() => {
