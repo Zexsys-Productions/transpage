@@ -1,121 +1,191 @@
 class PromptService {
     constructor() {
         this.session = null;
+        this.usingFallback = false;
+        console.log('PromptService initialized');
     }
 
     async checkAvailability() {
+        console.log('Checking AI availability...');
         try {
-            const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
-            
-            switch(capabilities.available) {
-                case 'readily':
-                    return { available: true, status: 'Model is ready to use' };
-                case 'after-download':
-                    return { available: true, status: 'Model needs to be downloaded first' };
-                case 'no':
-                    return { available: false, status: 'Model is not available on this device' };
-                default:
-                    return { available: false, status: 'Unknown status' };
+            // Try Chrome AI Origin Trial first
+            console.log('Checking Chrome AI...', { chrome: 'chrome' in window, aiOriginTrial: 'chrome' in window && 'aiOriginTrial' in chrome });
+            if ('chrome' in window && 'aiOriginTrial' in chrome) {
+                const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
+                console.log('Chrome AI capabilities:', capabilities);
+                
+                switch(capabilities.available) {
+                    case 'readily':
+                        return { available: true, status: 'Chrome AI Model is ready to use', provider: 'chrome' };
+                    case 'after-download':
+                        return { available: true, status: 'Chrome AI Model needs to be downloaded first', provider: 'chrome' };
+                    case 'no':
+                        throw new Error('Chrome AI Model is not available on this device');
+                    default:
+                        throw new Error('Unknown status');
+                }
+            } else {
+                throw new Error('Chrome AI API not available');
             }
         } catch (error) {
-            console.error('Failed to check Prompt API availability:', error);
-            return { available: false, status: 'Error checking availability: ' + error.message };
+            console.log('Falling back to alternative AI API...', error);
+            // Try fallback AI API
+            try {
+                console.log('Checking alternative AI...', { ai: 'ai' in window, languageModel: 'ai' in window && 'languageModel' in window.ai });
+                if ('ai' in window && 'languageModel' in window.ai) {
+                    return { available: true, status: 'Alternative AI Model is available', provider: 'fallback' };
+                } else {
+                    return { available: false, status: 'No AI models are available', provider: null };
+                }
+            } catch (fallbackError) {
+                console.error('Failed to check alternative AI API:', fallbackError);
+                return { available: false, status: 'Error checking availability: No AI models are available', provider: null };
+            }
         }
     }
 
     async initialize() {
+        console.log('Initializing AI...');
         try {
-            const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
-            
-            if (capabilities.available === 'no') {
-                throw new Error('Prompt API is not available on this device');
+            // Try Chrome AI Origin Trial first
+            if ('chrome' in window && 'aiOriginTrial' in chrome) {
+                console.log('Trying to initialize Chrome AI...');
+                const capabilities = await chrome.aiOriginTrial.languageModel.capabilities();
+                
+                if (capabilities.available === 'no') {
+                    throw new Error('Chrome AI API is not available on this device');
+                }
+
+                this.session = await chrome.aiOriginTrial.languageModel.create({
+                    systemPrompt: 'You are a helpful language learning assistant.'
+                });
+                this.usingFallback = false;
+                console.log('Chrome AI initialized successfully');
+                return true;
+            } else {
+                throw new Error('Chrome AI API not available');
             }
-
-            // Create a new session with default settings
-            this.session = await chrome.aiOriginTrial.languageModel.create({
-                systemPrompt: 'You are a helpful language learning assistant.'
-            });
-
-            return true;
         } catch (error) {
-            console.error('Failed to initialize Prompt API:', error);
-            return false;
+            console.log('Falling back to alternative AI API...', error);
+            // Try fallback AI API
+            try {
+                if ('ai' in window && 'languageModel' in window.ai) {
+                    console.log('Trying to initialize alternative AI...');
+                    this.session = await window.ai.languageModel.create();
+                    this.usingFallback = true;
+                    console.log('Alternative AI initialized successfully');
+                    return true;
+                } else {
+                    throw new Error('No AI models are available');
+                }
+            } catch (fallbackError) {
+                console.error('Failed to initialize alternative AI API:', fallbackError);
+                return false;
+            }
         }
     }
 
     async prompt(text, { streaming = false, onChunk = null } = {}) {
+        console.log('Prompting AI...', { text, streaming, usingFallback: this.usingFallback });
         if (!this.session) {
-            await this.initialize();
+            console.log('No session, initializing...');
+            const initialized = await this.initialize();
+            if (!initialized) {
+                console.error('Failed to initialize AI');
+                return { success: false, error: 'Failed to initialize any AI model' };
+            }
         }
 
         try {
-            if (streaming && onChunk) {
-                const stream = this.session.promptStreaming(text);
-                let result = '';
-                let previousChunk = '';
-
-                for await (const chunk of stream) {
-                    const newChunk = chunk.startsWith(previousChunk)
-                        ? chunk.slice(previousChunk.length)
-                        : chunk;
-                    
-                    onChunk(newChunk);
-                    result += newChunk;
-                    previousChunk = chunk;
-                }
-
-                return { success: true, response: result };
-            } else {
+            if (this.usingFallback) {
+                // Using alternative AI API
+                console.log('Using fallback API for prompt');
                 const response = await this.session.prompt(text);
+                console.log('Full response:', response);
+                
+                if (streaming && onChunk) {
+                    onChunk(response);
+                }
+                
                 return { success: true, response };
+            } else {
+                // Using Chrome AI Origin Trial
+                console.log('Using Chrome AI for prompt');
+                if (streaming && onChunk) {
+                    let fullResponse = '';
+                    const response = await this.session.generateStream(text);
+                    for await (const chunk of response) {
+                        console.log('Received chunk:', chunk);
+                        fullResponse += chunk;
+                        onChunk(chunk);
+                    }
+                    console.log('Full response:', fullResponse);
+                    return { success: true, response: fullResponse };
+                } else {
+                    const response = await this.session.generate(text);
+                    console.log('Full response:', response);
+                    return { success: true, response };
+                }
             }
         } catch (error) {
-            console.error('Failed to get prompt response:', error);
+            console.error('Failed to generate response:', error);
             return { success: false, error: error.message };
         }
     }
 
-    async checkSimilarity(userAnswer, correctAnswer) {
+    async checkSimilarity(text1, text2) {
+        console.log('Checking similarity between texts...', { text1, text2 });
         if (!this.session) {
-            await this.initialize();
+            console.log('No session, initializing...');
+            const initialized = await this.initialize();
+            if (!initialized) {
+                console.error('Failed to initialize AI');
+                return { success: false, error: 'Failed to initialize any AI model' };
+            }
         }
 
-        try {
-            const prompt = `Compare these two words and give me a similarity score from 0 to 100. Only respond with the number:
-Word 1: "${userAnswer}"
-Word 2: "${correctAnswer}"
-
+        const prompt = `Compare these two texts and rate their similarity from 0 to 100, where 100 means identical meaning and 0 means completely different:
+Text 1: "${text1}"
+Text 2: "${text2}"
 Consider:
-- Spelling similarity
+- Spelling Similarity
 - Letter arrangement
 - Common typos
-- Phonetic similarity
+- Phonetic Similarity
+- Similar Grammar
 
-Construct your answer in this format: "The similarity score is {score}":`;
+Construct your answer in the following format and no other text: "Similarity: {score}%"`;
 
-            const { success, response } = await this.prompt(prompt);
-            
-            if (!success) {
-                throw new Error('Failed to get similarity score');
+        try {
+            console.log('Prompting AI for similarity check...');
+            const result = await this.prompt(prompt);
+            if (!result.success) {
+                throw new Error(result.error);
             }
 
-            // Extract the number from the response
-            const score = parseInt(response.match(/\d+/)?.[0] || '0');
-            return {
-                success: true,
-                score: Math.min(100, Math.max(0, score)), // Ensure score is between 0 and 100
-                response
+            console.log('Raw similarity response:', result.response);
+            const match = result.response.match(/Similarity:\s*(\d+)%?/i);
+            
+            if (!match) {
+                console.error('Could not extract similarity score from response:', result.response);
+                return { success: false, error: 'Invalid response format' };
+            }
+
+            const similarity = parseInt(match[1], 10);
+            if (isNaN(similarity)) {
+                console.error('Extracted value is not a valid number:', match[1]);
+                return { success: false, error: 'Invalid similarity score' };
+            }
+
+            console.log('Extracted similarity score:', similarity);
+            return { 
+                success: true, 
+                score: Math.max(0, Math.min(100, similarity)),
+                rawResponse: result.response 
             };
         } catch (error) {
             console.error('Failed to check similarity:', error);
             return { success: false, error: error.message };
-        }
-    }
-
-    destroy() {
-        if (this.session) {
-            this.session.destroy();
-            this.session = null;
         }
     }
 }
