@@ -97,9 +97,17 @@ class PromptService {
         }
 
         try {
+            // Check if this is a similarity check prompt
+            const isSimilarityCheck = text.includes('Compare these two texts and rate their similarity');
+            
             if (this.usingFallback) {
                 // Using alternative AI API
                 console.log('Using fallback API for prompt');
+                if (!isSimilarityCheck) {
+                    // For regular prompts, add a prefix to ensure proper response format
+                    text = `Respond to this request as a helpful assistant. Do not use any special format or scoring system in your response: ${text}`;
+                }
+                
                 if (streaming && onChunk) {
                     let fullResponse = '';
                     const response = await this.session.prompt(text, { stream: true });
