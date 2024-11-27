@@ -210,6 +210,23 @@ Construct your answer in the following format and no other text: "Similarity: {s
             return { success: false, error: error.message };
         }
     }
+
+    async destroy() {
+        console.log('Destroying AI session...');
+        try {
+            if (this.session) {
+                if (!this.usingFallback && 'chrome' in window && 'aiOriginTrial' in chrome) {
+                    await this.session.destroy();
+                } else if (this.usingFallback && 'ai' in window && 'languageModel' in window.ai) {
+                    await this.session.destroy();
+                }
+                this.session = null;
+                console.log('AI session destroyed successfully');
+            }
+        } catch (error) {
+            console.error('Error destroying AI session:', error);
+        }
+    }
 }
 
 export const promptService = new PromptService();

@@ -34,7 +34,7 @@
     .container {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 0;
       max-width: 100%;
     }
     .header {
@@ -43,22 +43,9 @@
       align-items: center;
       padding: 12px 16px;
     }
-    .header h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 500;
-      font-family: 'Frutiger Neue', sans-serif;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .header h2::before {
-      content: '';
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      background: url('../assets/translate.svg') no-repeat center;
-      background-size: contain;
+    .header .logo {
+      height: 24px;
+      width: auto;
     }
     .header-right {
       display: flex;
@@ -234,7 +221,6 @@
     }
     #guess-input:focus {
       border-color: #1a73e8;
-      outline: none;
     }
     .quiz-feedback {
       margin-top: 12px;
@@ -267,7 +253,7 @@
       display: flex;
       overflow: hidden;
       border-radius: 4px;
-      width: 50%;
+      width: 70%;
       border: 1px solid #dadce0;
     }
 
@@ -314,7 +300,7 @@
       cursor: pointer;
       transition: background-color 0.2s ease;
       white-space: nowrap;
-      width: 50%;
+      width: 30%;
     }
 
     .learn-mode-button:hover {
@@ -337,7 +323,7 @@
       font-size: 28px;
       font-weight: 700;
       color: #000000;
-      margin: 12px 0 16px 0;
+      margin:16px 0;
       text-align: center;
       line-height: 1;
     }
@@ -347,11 +333,11 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-top: 12px;
+      margin-top: 0;
     }
 
     .word-card {
-      margin: 12px 8px;
+      margin: 8px 8px;
       border-radius: 8px;
       transform-origin: top;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -465,15 +451,15 @@
     }
 
     .word-card.open .word-card-content {
-      padding: 16px;
-      max-height: 200px;
+      padding: 12px;
+      max-height: 160px;
     }
 
     .word-card-buttons {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 16px;
+      padding-bottom: 8px;
     }
 
     .buttons-left {
@@ -548,7 +534,7 @@
     .word-card-feedback-container {
       min-height: 0;
       transition: min-height 0.3s ease;
-      margin-top: 8px;
+      margin-top: 4px;
     }
 
     .word-card-feedback {
@@ -562,20 +548,20 @@
       color: #ffffff;
       font-family: 'Frutiger Neue', sans-serif;
       transition: all 0.3s ease;
-      transform: translateY(-20px);
-      padding: 8px 12px;
-      border-radius: 4px;
+      transform: translateY(-10px);
       font-size: 13px;
-      display: none;
-      margin-bottom: 8px;
+      visibility: hidden;
+      margin-bottom: 0;
+      line-height: 1.2;
     }
 
     .word-card-feedback.visible {
-      max-height: 50px;
+      max-height: 32px;
       opacity: 1;
-      padding: 8px;
+      padding: 6px;
       transform: translateY(0);
-      display: block;
+      visibility: visible;
+      margin-bottom: 4px;
     }
 
     .word-card-feedback.correct {
@@ -648,6 +634,19 @@
 
     .word-card.open .arrow-icon {
       filter: brightness(100);
+    }
+
+    /* Adjust the content padding when open */
+    .word-card.open .word-card-content {
+      padding: 12px;
+      max-height: 160px;
+    }
+
+    .word-card-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
     }
 
     .word-card-ai-feedback {
@@ -791,9 +790,41 @@
     
     .ai-status {
       display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .token-usage {
+      display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 12px;
+      font-size: 12px;
+      color: #4b5563;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .token-progress {
+      flex: 1;
+      height: 4px;
+      background-color: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .token-progress-bar {
+      height: 100%;
+      background-color: #1a73e8;
+      transition: width 0.3s ease;
+    }
+
+    .token-numbers {
+      font-family: 'Frutiger Neue', monospace;
+      white-space: nowrap;
     }
 
     .status-text {
@@ -835,66 +866,95 @@
 
     /* Confirmation popup styles */
     .confirmation-popup {
-      display: none;
       position: fixed;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-      z-index: 2000;
-      width: 80%;
-      max-width: 300px;
+      transform: translate(-50%, -50%) scale(0.95);
+      background-color: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-family: 'Frutiger Neue', sans-serif;
+      width: 320px;
       text-align: center;
     }
 
     .confirmation-popup.visible {
-      display: block;
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .confirmation-popup-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+    }
+
+    .confirmation-popup-message {
+      color: #1f2937;
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 24px;
     }
 
     .confirmation-popup-buttons {
       display: flex;
       justify-content: center;
       gap: 12px;
-      margin-top: 16px;
+      margin-top: 24px;
     }
 
     .confirmation-popup-button {
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
-      cursor: pointer;
+      padding: 10px 20px;
       border: none;
+      border-radius: 8px;
+      cursor: pointer;
       font-family: 'Frutiger Neue', sans-serif;
-      font-weight: bold;
+      font-size: 14px;
+      font-weight: 500;
       transition: all 0.2s ease;
     }
 
-    .confirm-button {
-      background: #1a73e8;
+    .confirmation-popup-button.confirm-button {
+      background-color: #1a73e8;
       color: white;
     }
 
-    .cancel-button {
-      background: #e8eaed;
-      color: #3c4043;
+    .confirmation-popup-button.confirm-button:hover {
+      background-color: #1557b0;
+    }
+
+    .confirmation-popup-button.cancel-button {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .confirmation-popup-button.cancel-button:hover {
+      background-color: #e5e7eb;
     }
 
     .popup-overlay {
-      display: none;
       position: fixed;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1999;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease-in-out;
     }
 
     .popup-overlay.visible {
-      display: block;
+      opacity: 1;
+      visibility: visible;
     }
 
     .prompt-test-section {
@@ -1006,12 +1066,33 @@
       0% { transform: translate(-50%, -50%) rotate(0deg); }
       100% { transform: translate(-50%, -50%) rotate(360deg); }
     }
+
+    .status-message {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #9ca3af;
+    }
+
+    .status-icon.success {
+      background-color: #10b981;
+    }
+
+    .status-icon.error {
+      background-color: #ef4444;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h2>Transpage</h2>
+      <img src="../assets/logo.svg" alt="Transpage" class="logo">
       <div class="header-right">
         <button id="settingsButton">
           <img src="../assets/settings.svg" alt="Settings">
@@ -1087,19 +1168,34 @@
 
       <div class="settings-section">
         <h4 class="settings-section-title">AI Assistant</h4>
-        <div class="form-group">
-          <div class="ai-status">
-            <span>AI Model Status:</span>
-            <span id="aiModelStatus" class="status-text">Checking...</span>
+        <div class="ai-status">
+          <div class="status-message">
+            <span id="aiStatusIcon" class="status-icon"></span>
+            <span id="aiStatusText">Checking AI availability...</span>
           </div>
-          <button id="checkAiModel" class="check-ai-button">Check Availability</button>
+          <div class="token-usage">
+            <div class="token-progress">
+              <div class="token-progress-bar" id="tokenProgressBar"></div>
+            </div>
+            <div class="token-numbers">
+              <span id="tokensUsed">0</span>/<span id="maxTokens">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <button id="checkAiButton" class="secondary-button">
+            Check AI Availability
+          </button>
         </div>
       </div>
     </div>
   </div>
   <div class="popup-overlay"></div>
   <div class="confirmation-popup">
-    <p>This will refresh the page to restart learning mode. Continue?</p>
+    <img src="../assets/warning-icon.svg" alt="Warning" class="confirmation-popup-icon">
+    <div class="confirmation-popup-message">
+       AI session will be destroyed and learning mode will reset. Are you sure to continue?
+    </div>
     <div class="confirmation-popup-buttons">
       <button class="confirmation-popup-button cancel-button">Cancel</button>
       <button class="confirmation-popup-button confirm-button">Continue</button>

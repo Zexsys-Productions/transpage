@@ -1,3 +1,7 @@
+// Initialize translatedWords array globally
+let translatedWords = [];
+let collectedWords = [];  // Array to collect words during learning mode
+
 import { promptService } from '../scripts/promptService.js';
 
 console.log('Transpage sidepanel loaded');
@@ -54,33 +58,79 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // AI Model Status Check
-  const aiModelStatus = document.getElementById('aiModelStatus');
-  const checkAiButton = document.getElementById('checkAiModel');
+  const aiStatusText = document.getElementById('aiStatusText');
+  const aiStatusIcon = document.getElementById('aiStatusIcon');
+  const checkAiButton = document.getElementById('checkAiButton');
   const promptInput = document.getElementById('promptInput');
   const sendPromptButton = document.getElementById('sendPrompt');
   const promptResponse = document.getElementById('promptResponse');
 
   async function updateAiModelStatus() {
-    checkAiButton.disabled = true;
-    aiModelStatus.textContent = 'Checking...';
-    aiModelStatus.className = 'status-text';
-
-    try {
-      const { available, status } = await promptService.checkAvailability();
-      aiModelStatus.textContent = status;
-      aiModelStatus.className = `status-text ${available ? 'available' : 'unavailable'}`;
-    } catch (error) {
-      aiModelStatus.textContent = 'Error checking availability';
-      aiModelStatus.className = 'status-text unavailable';
+    if (!aiStatusText || !aiStatusIcon || !checkAiButton) {
+      console.error('AI status elements not found');
+      return;
     }
-
-    checkAiButton.disabled = false;
+    
+    checkAiButton.disabled = true;
+    
+    try {
+      const { available, status, provider } = await promptService.checkAvailability();
+      
+      // Update status display
+      aiStatusText.textContent = status;
+      aiStatusIcon.className = 'status-icon ' + (available ? 'success' : 'error');
+      
+      // Update token usage if session exists
+      if (promptService.session) {
+        updateTokenUsage();
+      }
+    } catch (error) {
+      aiStatusText.textContent = 'Error checking AI availability';
+      aiStatusIcon.className = 'status-icon error';
+    } finally {
+      checkAiButton.disabled = false;
+    }
   }
 
-  checkAiButton.addEventListener('click', updateAiModelStatus);
-  
-  // Initial check
-  updateAiModelStatus();
+  function updateTokenUsage() {
+    const tokenProgressBar = document.getElementById('tokenProgressBar');
+    const tokensUsedElement = document.getElementById('tokensUsed');
+    const maxTokensElement = document.getElementById('maxTokens');
+    
+    if (!tokenProgressBar || !tokensUsedElement || !maxTokensElement) {
+      console.error('Token usage elements not found');
+      return;
+    }
+    
+    if (promptService.session) {
+      const { tokensSoFar, maxTokens } = promptService.session;
+      const tokensLeft = maxTokens - tokensSoFar;
+      
+      // Update the progress bar
+      const percentage = (tokensSoFar / maxTokens) * 100;
+      tokenProgressBar.style.width = `${percentage}%`;
+      
+      // Update the numbers
+      tokensUsedElement.textContent = tokensSoFar.toLocaleString();
+      maxTokensElement.textContent = maxTokens.toLocaleString();
+      
+      // Change color based on usage
+      if (percentage > 90) {
+        tokenProgressBar.style.backgroundColor = '#dc2626'; // red
+      } else if (percentage > 75) {
+        tokenProgressBar.style.backgroundColor = '#f59e0b'; // amber
+      } else {
+        tokenProgressBar.style.backgroundColor = '#1a73e8'; // blue
+      }
+    }
+  }
+
+  // Only add event listener if button exists
+  if (checkAiButton) {
+    checkAiButton.addEventListener('click', updateAiModelStatus);
+    // Initial check
+    updateAiModelStatus();
+  }
 
   // Handle prompt test
   if (sendPromptButton && promptInput && promptResponse) {
@@ -128,21 +178,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   let isLearningMode = false;
-  let translatedWords = [];
 
   // Listen for new translated words
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Sidepanel received message:', request);
-    if (request.action === 'newTranslatedWord') {
-      const word = {
-        translated: request.data.translatedWord,
-        original: request.data.originalWord
-      };
-      translatedWords.push(word);
-      createWordCards([word]); // Add just the new word
-    } else if (request.action === 'openWordCard') {
-      console.log('Opening word card:', request.data);
-      openWordCard(request.data.translatedWord);
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('Sidepanel received message:', message);
+    
+    if (message.action === 'newTranslatedWord' && isLearningMode) {
+      // Add word to collected words
+      collectedWords.push({
+        originalWord: message.data.originalWord,
+        translatedWord: message.data.translatedWord
+      });
+      // Create word card for the new word
+      createWordCards([{
+        originalWord: message.data.originalWord,
+        translatedWord: message.data.translatedWord
+      }]);
+    } else if (message.action === 'openWordCard') {
+      console.log('Opening word card:', message.data);
+      openWordCard(message.data.translatedWord);
     }
   });
 
@@ -181,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       // Clear previous words
       translatedWords = [];
+      collectedWords = [];  // Reset collected words
       const wordsContainer = document.getElementById('words-container');
       if (wordsContainer) {
         wordsContainer.innerHTML = '';
@@ -209,13 +264,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       console.log('Learn mode response:', response);
       
-      if (response && response.error) {
-        showStatus('Error: ' + response.error, 'error');
-        return;
-      }
-
       if (response && response.success) {
         showStatus('Learning mode started! Click highlighted words to learn them.', 'success');
+        // Words will be added through the message listener as they come in
       } else {
         showStatus('Failed to start learning mode. Please try refreshing the page.', 'error');
       }
@@ -238,7 +289,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.popup-overlay').classList.remove('visible');
   }
 
-  function refreshAndRestart() {
+  async function refreshAndRestart() {
+    // Destroy the AI session before refreshing
+    await promptService.destroy();
+    
     // Send message to content script to refresh the page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const activeTab = tabs[0];
@@ -261,7 +315,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const wordsContainer = document.getElementById('words-container');
     if (!wordsContainer) return;
 
-    // Don't clear existing cards, just append new ones
+    if (!Array.isArray(words)) {
+      console.error('createWordCards received invalid words:', words);
+      return;
+    }
+
+    // Add new words to translatedWords array
+    translatedWords = translatedWords.concat(words);
+
+    // Create cards for new words
     words.forEach((word, index) => {
       const card = document.createElement('div');
       card.className = 'word-card';
@@ -269,13 +331,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Add number overlay
       const numberOverlay = document.createElement('div');
       numberOverlay.className = 'word-card-number';
-      numberOverlay.textContent = translatedWords.length; // Use the total length for numbering
+      numberOverlay.textContent = translatedWords.length - words.length + index + 1; // Calculate correct number
       card.appendChild(numberOverlay);
 
       card.innerHTML += `
         <div class="word-card-header">
-          <div class="word-container" data-original-length="${word.original.length}">
-            <span class="word">${word.translated}</span>
+          <div class="word-container" data-original-length="${word.originalWord.length}">
+            <span class="word">${word.translatedWord}</span>
             <img src="../assets/arrow_right_alt.svg" class="arrow-icon" alt="arrow">
             <input type="text" class="dotted-input" placeholder="" disabled>
           </div>
@@ -317,13 +379,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       const wordSpan = wordContainer.querySelector('.word');
       
       // Set the original word length for the dotted line
-      wordContainer.style.setProperty('--original-length', word.original.length);
+      wordContainer.style.setProperty('--original-length', word.originalWord.length);
       
       // Function to check if word is too long
       const checkWordLength = () => {
         const containerWidth = wordContainer.offsetWidth - 48; // Subtract padding
         const wordWidth = wordSpan.offsetWidth;
-        const estimatedInputWidth = word.original.length * 12; // Rough estimate of input width
+        const estimatedInputWidth = word.originalWord.length * 12; // Rough estimate of input width
         
         // If word is longer than 40% of container or total width would exceed container
         if (wordWidth > containerWidth * 0.4 || (wordWidth + 60 + estimatedInputWidth) > containerWidth) {
@@ -343,6 +405,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       const input = card.querySelector('.dotted-input');
       const feedback = card.querySelector('.word-card-feedback');
       
+      const closeCard = (card, immediate = false) => {
+        const input = card.querySelector('.dotted-input');
+        const feedback = card.querySelector('.word-card-feedback');
+        
+        if (immediate) {
+          card.classList.remove('open');
+          input.disabled = true;
+          input.blur();
+          feedback.className = 'word-card-feedback';
+        } else {
+          card.style.transition = 'all 0.3s ease';
+          card.classList.remove('open');
+          
+          // Wait for animation to complete before disabling input
+          setTimeout(() => {
+            input.disabled = true;
+            input.blur();
+            feedback.className = 'word-card-feedback';
+          }, 300);
+        }
+      };
+      
+      const openCard = (card) => {
+        card.style.transition = 'all 0.3s ease';
+        card.classList.add('open');
+        
+        // Enable input after animation starts
+        setTimeout(() => {
+          const input = card.querySelector('.dotted-input');
+          input.disabled = false;
+          input.focus();
+          
+          const feedback = card.querySelector('.word-card-feedback');
+          feedback.className = 'word-card-feedback';
+        }, 50);
+      };
+      
       header.addEventListener('click', (event) => {
         // If clicking on the input, don't toggle the card
         if (event.target === input) {
@@ -352,35 +451,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Close any other open cards
         document.querySelectorAll('.word-card.open').forEach(openCard => {
           if (openCard !== card) {
-            openCard.classList.remove('open');
-            const otherFeedback = openCard.querySelector('.word-card-feedback');
-            if (otherFeedback) {
-              otherFeedback.className = 'word-card-feedback';
-            }
-            const otherInput = openCard.querySelector('.dotted-input');
-            otherInput.disabled = true;
-            otherInput.blur();
+            closeCard(openCard, true);
           }
         });
 
-        // Only open the card, never close it through header click
+        // Toggle card state
         if (!card.classList.contains('open')) {
-          card.classList.add('open');
-          input.disabled = false;
-          input.focus();
-          feedback.className = 'word-card-feedback';
+          openCard(card);
         }
       });
 
       // Add click handler to document to close cards when clicking outside
       document.addEventListener('click', (event) => {
         if (!card.contains(event.target) && card.classList.contains('open')) {
-          card.classList.remove('open');
-          input.disabled = true;
-          input.blur();
-          feedback.className = 'word-card-feedback';
+          closeCard(card);
         }
       });
+
+      // Function to show feedback with animation
+      const showFeedbackWithAnimation = (feedback, message, type = '') => {
+        // Reset the feedback state
+        feedback.className = 'word-card-feedback';
+        feedback.style.transition = 'none';
+        feedback.offsetHeight; // Force reflow
+        feedback.style.transition = 'all 0.3s ease';
+        
+        // Set the message and show feedback
+        feedback.textContent = message;
+        feedback.className = `word-card-feedback visible ${type}`;
+      };
+
+      // Function to hide feedback with animation
+      const hideFeedbackWithAnimation = (feedback) => {
+        feedback.className = 'word-card-feedback';
+      };
 
       // Add button handlers
       const feedbackContainer = card.querySelector('.word-card-feedback-container');
@@ -392,32 +496,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Hint button
       card.querySelector('.hint-button').addEventListener('click', () => {
-        const hint = word.original.charAt(0) + '_'.repeat(word.original.length - 1);
-        feedback.className = 'word-card-feedback visible';
-        feedback.textContent = `Hint: ${hint}`;
+        const hint = word.originalWord.charAt(0) + '_'.repeat(word.originalWord.length - 1);
+        showFeedbackWithAnimation(feedback, `Hint: ${hint}`);
       });
 
       // Skip button
       card.querySelector('.skip-button').addEventListener('click', () => {
-        feedback.className = 'word-card-feedback visible';
-        feedback.textContent = `The word was: ${word.original}`;
+        showFeedbackWithAnimation(feedback, `The word was: ${word.originalWord}`);
         
         setTimeout(() => {
-          feedback.className = 'word-card-feedback';
+          hideFeedbackWithAnimation(feedback);
           setTimeout(() => {
-            card.classList.remove('open');
-            input.disabled = true;
+            closeCard(card);
           }, 300);
         }, 1500);
       });
 
       // Report button
       card.querySelector('.report-button').addEventListener('click', () => {
-        feedback.className = 'word-card-feedback visible';
-        feedback.textContent = 'Word reported. Thank you for your feedback!';
+        showFeedbackWithAnimation(feedback, 'Word reported. Thank you for your feedback!');
         
         setTimeout(() => {
-          feedback.className = 'word-card-feedback';
+          hideFeedbackWithAnimation(feedback);
         }, 2000);
       });
     });
@@ -425,7 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function checkAnswer(wordCard, word) {
     const userAnswer = wordCard.querySelector('.dotted-input').value.trim().toLowerCase();
-    const correctAnswer = word.original.toLowerCase();
+    const correctAnswer = word.originalWord.toLowerCase();
     const isCorrect = userAnswer === correctAnswer;
     
     // Show regular feedback
@@ -478,12 +578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Close other cards first
         cards.forEach(otherCard => {
           if (otherCard !== card && otherCard.classList.contains('open')) {
-            otherCard.classList.remove('open');
-            const feedback = otherCard.querySelector('.word-card-feedback');
-            if (feedback) feedback.style.display = 'none';
-            const otherInput = otherCard.querySelector('.dotted-input');
-            otherInput.value = '';
-            otherInput.disabled = true;
+            closeCard(otherCard, true);
           }
         });
 
@@ -496,6 +591,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           const input = card.querySelector('.dotted-input');
           input.disabled = false;
           input.focus();
+          
+          const feedback = card.querySelector('.word-card-feedback');
+          feedback.className = 'word-card-feedback';
         }, 300);
       }
     });
