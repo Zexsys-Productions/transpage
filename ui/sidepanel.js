@@ -479,8 +479,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       
       header.addEventListener('click', (event) => {
-        // If clicking on the input, don't toggle the card
-        if (event.target === input) {
+        // Send message to content script to scroll to the translated word
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'scrollToWord',
+            word: word.translatedWord
+          });
+        });
+
+        // If clicking input or already open card, return
+        if (event.target === input || card.classList.contains('open')) {
           return;
         }
 
