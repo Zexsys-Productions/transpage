@@ -1087,6 +1087,82 @@
     .status-icon.error {
       background-color: #ef4444;
     }
+
+    /* Translation Test UI Styles */
+    .translation-test-section {
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .translation-test-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    .translation-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .translation-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .translation-input {
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .language-select {
+      padding: 6px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background-color: white;
+    }
+    .translation-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .translation-input {
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .language-select {
+      padding: 6px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background-color: white;
+    }
+    .translation-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .translation-input {
+      width: 100%;
+      min-height: 60px;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .language-select {
+      padding: 6px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background-color: white;
+    }
   </style>
 </head>
 <body>
@@ -1136,6 +1212,27 @@
         </button>
       </div>
       <div id="promptResponse" class="prompt-response"></div>
+    </div>
+
+    <!-- Translation Test UI -->
+    <div class="translation-test-section">
+      <h3>Translation Test</h3>
+      <div class="translation-input-container">
+        <textarea class="translation-input" id="translationInput" placeholder="Enter text to translate..."></textarea>
+        <div class="translation-controls">
+          <select class="language-select" id="sourceLanguage">
+            <option value="en">English</option>
+            <option value="id">Indonesian</option>
+          </select>
+          <span>&rarr;</span>
+          <select class="language-select" id="targetLanguage">
+            <option value="id">Indonesian</option>
+            <option value="en">English</option>
+          </select>
+          <button class="primary-button" id="translateButton">Translate</button>
+        </div>
+        <textarea class="translation-input" id="translationOutput" placeholder="Translation will appear here..." readonly></textarea>
+      </div>
     </div>
 
     <div class="divider"></div>

@@ -3,6 +3,7 @@ let translatedWords = [];
 let collectedWords = [];  // Array to collect words during learning mode
 
 import { promptService } from '../scripts/promptService.js';
+import { translationService } from '../scripts/translationService.js';
 
 console.log('Transpage sidepanel loaded');
 
@@ -16,6 +17,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeButton = settingsElement?.querySelector('.settings-close');
   const sourceLanguageSelect = document.getElementById('sourceLanguage');
   const targetLanguageSelect = document.getElementById('targetLanguage');
+
+  // Translation UI elements
+  const translationInput = document.getElementById('translationInput');
+  const translationOutput = document.getElementById('translationOutput');
+  const translateButton = document.getElementById('translateButton');
 
   // Other elements
   const startButton = document.getElementById('start-learning');
@@ -54,6 +60,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       settingsElement,
       closeButton,
       settingsOverlay
+    });
+  }
+
+  // Translation functionality
+  if (translateButton) {
+    translateButton.addEventListener('click', async () => {
+      const text = translationInput.value.trim();
+      if (!text) {
+        translationOutput.value = 'Please enter text to translate';
+        return;
+      }
+
+      translateButton.disabled = true;
+      try {
+        const result = await translationService.translate(
+          text,
+          sourceLanguageSelect.value,
+          targetLanguageSelect.value
+        );
+
+        if (result.success) {
+          translationOutput.value = result.translatedText;
+        } else {
+          translationOutput.value = 'Translation error: ' + result.error;
+        }
+      } catch (error) {
+        translationOutput.value = 'Translation failed: ' + error.message;
+      } finally {
+        translateButton.disabled = false;
+      }
     });
   }
 
