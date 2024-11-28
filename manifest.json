@@ -17,7 +17,12 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["scripts/content.js"]
+      "js": [
+        "scripts/styles.js",
+        "scripts/tooltip.js",
+        "scripts/wordHighlight.js",
+        "scripts/content.js"
+      ]
     }
   ],
   "side_panel": {
