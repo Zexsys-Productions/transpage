@@ -1,6 +1,8 @@
 // Initialize translatedWords array globally
 let translatedWords = [];
+let translatedSentences = []; // New array for sentences
 let collectedWords = [];  // Array to collect words during learning mode
+let currentMode = 'words'; // 'words' or 'sentences' // New variable to track current mode
 
 console.log('Transpage sidepanel loaded');
 
@@ -315,6 +317,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       return true;
     }
+
+    if (request.action === 'addSentenceCard') {
+      console.log('Adding sentence card:', request.data);
+      translatedSentences.push(request.data);
+      if (currentMode === 'sentences') {
+        createSentenceCard(request.data);
+      }
+      sendResponse({ success: true });
+      return true;
+    }
   });
 
   function openWordCard(data) {
@@ -375,6 +387,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     }]);
   }
 
+  async function startLearningMode() {
+    isLearningMode = true;
+    console.log('Learn mode button clicked');
+    
+    try {
+      // Clear previous words and sentences
+      translatedWords = [];
+      translatedSentences = [];
+      collectedWords = [];
+      const wordsContainer = document.getElementById('words-container');
+      if (wordsContainer) {
+        wordsContainer.innerHTML = '';
+      }
+
+      // Get selected difficulty (only needed for word mode)
+      const selectedDifficulty = document.querySelector('.difficulty-option.selected')?.dataset.difficulty;
+      console.log('Selected difficulty:', selectedDifficulty);
+
+      const statusMessage = currentMode === 'words' 
+        ? 'Looking for words to learn, this might take a while...'
+        : 'Processing sentences, this might take a while...';
+      showStatus(statusMessage, 'success');
+      showProgress();
+      startButton.disabled = true;
+
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      console.log('Current tab:', tab);
+
+      const sourceLanguage = sourceLanguageSelect.value;
+      const targetLanguage = targetLanguageSelect.value;
+      
+      // Send appropriate action based on current mode
+      const action = currentMode === 'words' ? 'startLearnMode' : 'startSentenceMode';
+      const message = {
+        action,
+        sourceLanguage,
+        targetLanguage
+      };
+
+      // Only include difficulty for word mode
+      if (currentMode === 'words') {
+        message.selectedDifficulty = selectedDifficulty;
+      }
+
+      const response = await new Promise((resolve) => {
+        chrome.tabs.sendMessage(tab.id, message, resolve);
+      });
+
+      console.log('Response from content script:', response);
+
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Unknown error occurred');
+      }
+
+      hideProgress();
+      showStatus('Ready to learn!', 'success');
+      startButton.disabled = false;
+      startButton.textContent = 'Reset';
+
+    } catch (error) {
+      console.error('Error starting learning mode:', error);
+      hideProgress();
+      showStatus(`Error: ${error.message}`, 'error');
+      startButton.disabled = false;
+    }
+  }
+
   function initializeLearningMode() {
     if (!startButton) {
       console.error('Start learning button not found');
@@ -401,62 +480,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     cancelButton.addEventListener('click', hideConfirmationPopup);
     overlay.addEventListener('click', hideConfirmationPopup);
-  }
-
-  async function startLearningMode() {
-    isLearningMode = true;
-    console.log('Learn mode button clicked');
-    
-    try {
-      // Clear previous words
-      translatedWords = [];
-      collectedWords = [];  // Reset collected words
-      const wordsContainer = document.getElementById('words-container');
-      if (wordsContainer) {
-        wordsContainer.innerHTML = '';
-      }
-
-      // Get selected difficulty
-      const selectedDifficulty = document.querySelector('.difficulty-option.selected').dataset.difficulty;
-      console.log('Selected difficulty:', selectedDifficulty);
-
-      showStatus('Looking for words to learn, this might take a while...', 'success');
-      showProgress();
-      startButton.disabled = true;
-
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      console.log('Current tab:', tab);
-
-      const sourceLanguage = sourceLanguageSelect.value;
-      const targetLanguage = targetLanguageSelect.value;
-      
-      const response = await new Promise((resolve) => {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'learnMode',
-          sourceLanguage,
-          targetLanguage,
-          selectedDifficulty
-        }, (response) => {
-          console.log('Learn mode response received:', response);
-          resolve(response);
-        });
-      });
-
-      console.log('Learn mode response:', response);
-      
-      if (response && response.success) {
-        showStatus('Learning mode started! Click highlighted words to learn them.', 'success');
-        // Words will be added through the message listener as they come in
-      } else {
-        showStatus('Failed to start learning mode. Please try refreshing the page.', 'error');
-      }
-    } catch (error) {
-      console.error('Learn mode error:', error);
-      showStatus('Error: ' + error.message + '\n\nPlease try refreshing the page.', 'error');
-    } finally {
-      hideProgress();
-      startButton.disabled = false;
-    }
   }
 
   function showConfirmationPopup() {
@@ -661,38 +684,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function checkAnswer(wordCard, word) {
-    const userAnswer = wordCard.querySelector('.dotted-input').value.trim().toLowerCase();
-    const correctAnswer = word.originalWord.toLowerCase();
-    const isCorrect = userAnswer === correctAnswer;
+    const input = wordCard.querySelector('.dotted-input');
+    const userAnswer = input.value.trim();
+    const correctAnswer = word.originalWord;
     
-    // Show regular feedback
-    showFeedback(wordCard, isCorrect ? 'Correct!' : `Incorrect. The answer is: ${correctAnswer}`, isCorrect);
-    
-    // Show AI feedback
     try {
-      const aiFeedback = wordCard.querySelector('.word-card-ai-feedback');
-      const aiScore = aiFeedback.querySelector('.ai-score');
-      
-      aiFeedback.className = 'word-card-ai-feedback visible';
-      aiScore.textContent = '...';
+        const aiFeedback = wordCard.querySelector('.word-card-ai-feedback');
+        const aiScore = aiFeedback.querySelector('.ai-score');
+        
+        aiFeedback.className = 'word-card-ai-feedback visible';
+        aiScore.textContent = '...';
 
-      const { success, score } = await window.promptService.checkSimilarity(userAnswer, correctAnswer);
-      
-      if (success) {
-        aiScore.textContent = score + '%';
-        aiFeedback.classList.add(score >= 70 ? 'high-score' : 'low-score');
-      } else {
-        aiFeedback.style.display = 'none';
-      }
+        const { success, score } = await window.promptService.checkSimilarity(userAnswer, correctAnswer);
+        
+        if (success) {
+            const isCorrect = score >= 70; // Using AI score threshold
+            showFeedback(wordCard, isCorrect ? 'Correct!' : `Incorrect. The correct translation is: ${correctAnswer}`, isCorrect);
+            
+            aiScore.textContent = score + '%';
+            aiFeedback.classList.add(score >= 70 ? 'high-score' : 'low-score');
+
+            // Add correct/incorrect class and close card after delay
+            setTimeout(() => {
+                wordCard.classList.remove('open');
+                wordCard.classList.add(isCorrect ? 'correct' : 'incorrect');
+            }, 2000);
+        } else {
+            showFeedback(wordCard, 'Error checking answer. Please try again.', false);
+            aiFeedback.style.display = 'none';
+        }
     } catch (error) {
-      console.error('AI similarity check failed:', error);
+        console.error('AI similarity check failed:', error);
+        showFeedback(wordCard, 'Error checking answer. Please try again.', false);
     }
-    
-    // Add correct/incorrect class and close card after delay
-    setTimeout(() => {
-      wordCard.classList.remove('open');
-      wordCard.classList.add(isCorrect ? 'correct' : 'incorrect');
-    }, 2000); // 2 second delay
   }
 
   function showFeedback(wordCard, message, isCorrect) {
@@ -737,6 +761,244 @@ document.addEventListener('DOMContentLoaded', async () => {
       progressElement.style.display = 'none';
     }
   }
+
+  function initializeModeSwitch() {
+    const leftArrow = document.querySelector('.left-arrow');
+    const rightArrow = document.querySelector('.right-arrow');
+    const modeSlider = document.querySelector('.mode-slider');
+    let currentMode = 0; // 0 for Words, 1 for Sentences
+
+    function updateArrowStates() {
+      leftArrow.classList.toggle('disabled', currentMode === 0);
+      rightArrow.classList.toggle('disabled', currentMode === 1);
+    }
+
+    function switchMode(direction) {
+      const newMode = currentMode + direction;
+      if (newMode >= 0 && newMode < 2) {
+        currentMode = newMode;
+        modeSlider.style.transform = `translateX(-${currentMode * 120}px)`; // Updated to match new width
+        updateArrowStates();
+      }
+    }
+
+    leftArrow.addEventListener('click', () => switchMode(-1));
+    rightArrow.addEventListener('click', () => switchMode(1));
+
+    // Initialize arrow states
+    updateArrowStates();
+  }
+
+  // Mode switching functionality
+  const modeContainer = document.querySelector('.mode-container');
+  const leftArrow = document.querySelector('.left-arrow');
+  const rightArrow = document.querySelector('.right-arrow');
+  const wordsContainer = document.getElementById('words-container');
+
+  function switchMode(direction) {
+    const slider = document.querySelector('.mode-slider');
+    if (direction === 'next' && currentMode === 'words') {
+      slider.style.transform = 'translateX(-50%)';
+      currentMode = 'sentences';
+      clearContainer();
+      displaySentenceCards();
+    } else if (direction === 'prev' && currentMode === 'sentences') {
+      slider.style.transform = 'translateX(0)';
+      currentMode = 'words';
+      clearContainer();
+      displayWordCards();
+    }
+  }
+
+  function clearContainer() {
+    wordsContainer.innerHTML = '';
+  }
+
+  leftArrow.addEventListener('click', () => switchMode('prev'));
+  rightArrow.addEventListener('click', () => switchMode('next'));
+
+  // Sentence card creation
+  function createSentenceCard(sentence) {
+    const card = document.createElement('div');
+    card.className = 'word-card sentence-card'; // Reusing word-card styles with sentence-specific modifications
+    
+    // Add number overlay
+    const numberOverlay = document.createElement('div');
+    numberOverlay.className = 'word-card-number';
+    numberOverlay.textContent = sentence.sentenceNumber;
+    card.appendChild(numberOverlay);
+
+    card.innerHTML += `
+      <div class="word-card-header">
+        <div class="sentence-container">
+          <div class="sentence translated">${sentence.translatedText}</div>
+          <img src="../assets/arrow_right_alt.svg" class="arrow-icon" alt="arrow">
+          <textarea class="sentence-input" placeholder="Type the English translation..." disabled></textarea>
+        </div>
+      </div>
+      <div class="word-card-content">
+        <div class="word-card-buttons">
+          <div class="buttons-left">
+            <button class="word-card-button report-button">
+              <img src="../assets/bug_report.svg" alt="Report">Report
+            </button>
+          </div>
+          <div class="buttons-right">
+            <button class="word-card-button skip-button">
+              <img src="../assets/skip_next.svg" alt="Skip">Skip
+            </button>
+            <button class="word-card-button hint-button">
+              <img src="../assets/fluorescent.svg" alt="Hint">Hint
+            </button>
+            <button class="word-card-button check-button">
+              <img src="../assets/check.svg" alt="Check">Check
+            </button>
+          </div>
+        </div>
+        <div class="word-card-feedback-container">
+          <div class="word-card-feedback"></div>
+          <div class="word-card-ai-feedback">
+            <img src="../assets/smart_toy.svg" class="ai-icon" alt="AI">
+            <span>AI Similarity Score: <span class="ai-score">...</span></span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    wordsContainer.appendChild(card);
+
+    // Add click handler for header
+    const header = card.querySelector('.word-card-header');
+    const input = card.querySelector('.sentence-input');
+    const feedback = card.querySelector('.word-card-feedback');
+    const checkButton = card.querySelector('.check-button');
+    const skipButton = card.querySelector('.skip-button');
+    const hintButton = card.querySelector('.hint-button');
+
+    header.addEventListener('click', (event) => {
+      // If clicking input or already open card, return
+      if (event.target === input || card.classList.contains('open')) {
+        return;
+      }
+
+      // Toggle card state
+      if (!card.classList.contains('open')) {
+        openSentenceCard(card);
+      }
+    });
+
+    // Add button handlers
+    checkButton.addEventListener('click', () => {
+      checkSentenceAnswer(card, sentence);
+    });
+
+    skipButton.addEventListener('click', () => {
+      showSentenceFeedback(card, `The correct translation is: ${sentence.originalText}`, false);
+      card.classList.add('skipped');
+    });
+
+    hintButton.addEventListener('click', () => {
+      const words = sentence.originalText.split(' ');
+      const hint = words.map(word => word[0] + '_'.repeat(word.length - 1)).join(' ');
+      showSentenceFeedback(card, `Hint: ${hint}`, 'hint');
+    });
+  }
+
+  function openSentenceCard(card) {
+    // Close any other open cards first
+    document.querySelectorAll('.sentence-card.open').forEach(openCard => {
+      if (openCard !== card) {
+        closeSentenceCard(openCard, true);
+      }
+    });
+    
+    card.classList.add('open');
+    
+    // Enable input after animation starts
+    setTimeout(() => {
+      const input = card.querySelector('.sentence-input');
+      input.disabled = false;
+      input.focus();
+      
+      const feedback = card.querySelector('.word-card-feedback');
+      feedback.className = 'word-card-feedback';
+    }, 50);
+    
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function closeSentenceCard(card, immediate = false) {
+    const input = card.querySelector('.sentence-input');
+    const feedback = card.querySelector('.word-card-feedback');
+    
+    if (immediate) {
+      card.classList.remove('open');
+      input.disabled = true;
+      input.blur();
+      feedback.className = 'word-card-feedback';
+    } else {
+      card.style.transition = 'all 0.3s ease';
+      card.classList.remove('open');
+      
+      setTimeout(() => {
+        input.disabled = true;
+        input.blur();
+        feedback.className = 'word-card-feedback';
+      }, 300);
+    }
+  }
+
+  async function checkSentenceAnswer(card, sentence) {
+    const input = card.querySelector('.sentence-input');
+    const userAnswer = input.value.trim();
+    const correctAnswer = sentence.originalText;
+    
+    try {
+        const aiFeedback = card.querySelector('.word-card-ai-feedback');
+        const aiScore = aiFeedback.querySelector('.ai-score');
+        
+        aiFeedback.className = 'word-card-ai-feedback visible';
+        aiScore.textContent = '...';
+
+        const { success, score } = await window.promptService.checkSimilarity(userAnswer, correctAnswer);
+        
+        if (success) {
+            const isCorrect = score >= 70; // Using AI score threshold
+            showSentenceFeedback(card, isCorrect ? 'Correct!' : `Incorrect. The correct translation is: ${correctAnswer}`, isCorrect);
+            
+            aiScore.textContent = score + '%';
+            aiFeedback.classList.add(score >= 70 ? 'high-score' : 'low-score');
+
+            // Add correct/incorrect class and close card after delay
+            setTimeout(() => {
+                card.classList.remove('open');
+                card.classList.add(isCorrect ? 'correct' : 'incorrect');
+            }, 2000);
+        } else {
+            showSentenceFeedback(card, 'Error checking answer. Please try again.', false);
+            aiFeedback.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('AI similarity check failed:', error);
+        showSentenceFeedback(card, 'Error checking answer. Please try again.', false);
+    }
+  }
+
+  function showSentenceFeedback(card, message, type) {
+    const feedback = card.querySelector('.word-card-feedback');
+    const className = type === true ? 'correct' : 
+                     type === false ? 'incorrect' : 
+                     type === 'hint' ? 'hint' : '';
+    
+    feedback.className = `word-card-feedback visible ${className}`;
+    feedback.textContent = message;
+  }
+
+  function displaySentenceCards() {
+    translatedSentences.forEach(sentence => createSentenceCard(sentence));
+  }
+
+  initializeModeSwitch();
 
   initializeLearningMode();
 });

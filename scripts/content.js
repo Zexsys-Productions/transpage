@@ -23,16 +23,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-    if (request.action === 'learnMode') {
+    if (request.action === 'startLearnMode') {
         handleLearnMode(request.sourceLanguage, request.targetLanguage, request.selectedDifficulty)
-            .then(result => {
-                console.log('Learn mode completed:', result);
-                sendResponse(result);
-            })
-            .catch(error => {
-                console.error('Learn mode error:', error);
-                sendResponse({ error: error.message });
-            });
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
+
+    if (request.action === 'startSentenceMode') {
+        handleSentenceMode(request.sourceLanguage, request.targetLanguage)
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
     }
 });
@@ -191,7 +192,15 @@ Only answer with the word and that word MUST be in the excerpt above.`;
                 }
 
                 // Use the context-aware translation
-                const translatedWord = contextResult.response.trim();
+                let translatedWord = contextResult.response.trim();
+                
+                // Convert to lowercase if it's not a proper noun
+                // We'll consider it a proper noun if it's capitalized in the translated paragraph
+                const wordInParagraph = translatedParagraph.match(new RegExp(`\\b${translatedWord}\\b`, 'i'))?.[0];
+                if (wordInParagraph && wordInParagraph[0] !== wordInParagraph[0].toUpperCase()) {
+                    translatedWord = translatedWord.toLowerCase();
+                }
+
                 console.log('Translation result:', {
                     original: wordToTranslate,
                     translated: translatedWord,
@@ -303,6 +312,65 @@ Only answer with the word and that word MUST be in the excerpt above.`;
 
     } catch (error) {
         console.error('Learn mode error:', error);
+        throw error;
+    }
+}
+
+async function handleSentenceMode(sourceLanguage, targetLanguage) {
+    console.log('Starting sentence mode...', { sourceLanguage, targetLanguage });
+
+    if (!('translation' in window)) {
+        console.error('Translation API not available in window');
+        throw new Error('Translation API is not available. Make sure you have Chrome 121 or later.');
+    }
+
+    try {
+        window.transpageSentenceCount = window.transpageSentenceCount || 0;
+
+        console.log('Creating translator...');
+        const translator = await window.translation.createTranslator({
+            sourceLanguage,
+            targetLanguage,
+        });
+
+        // Get all paragraph elements
+        const paragraphs = document.getElementsByTagName('p');
+        console.log(`Found ${paragraphs.length} paragraphs to process`);
+
+        // Process each paragraph
+        for (let i = 0; i < paragraphs.length; i++) {
+            const paragraph = paragraphs[i];
+            const text = paragraph.textContent.trim();
+
+            // Skip empty or very short paragraphs
+            if (!text || text.length < 10) {
+                console.log('Skipping short text:', text);
+                continue;
+            }
+
+            try {
+                // Translate the paragraph
+                const translationResult = await translator.translate(text);
+                console.log('Translation result:', translationResult);
+
+                // Send the sentence pair to the sidepanel
+                chrome.runtime.sendMessage({
+                    action: 'addSentenceCard',
+                    data: {
+                        originalText: text,
+                        translatedText: translationResult,
+                        sentenceNumber: ++window.transpageSentenceCount
+                    }
+                });
+
+            } catch (error) {
+                console.error('Translation error:', error);
+                continue;
+            }
+        }
+
+    } catch (error) {
+        console.error('Sentence mode error:', error);
         throw error;
     }
 }

@@ -334,6 +334,34 @@
       margin:16px 0;
       text-align: center;
       line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .mode-switch {
+      cursor: pointer;
+      color: #666;
+      transition: color 0.2s ease;
+    }
+
+    .mode-switch:hover {
+      color: #007bff;
+    }
+
+    .mode-switch {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .mode-switch .mode-arrow {
+      color: rgba(28, 27, 31, 0.33); /* inactive state color */
+    }
+
+    .mode-switch.active .mode-arrow {
+      color: rgba(28, 27, 31, 1); /* active state color */
     }
 
     /* Word Cards Styles */
@@ -1213,6 +1241,117 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    .mode-container {
+      position: relative;
+      overflow: hidden;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      width: 120px;
+    }
+
+    .mode-slider {
+      display: flex;
+      transition: transform 0.3s ease;
+      position: absolute;
+      left: 0;
+      width: 240px;
+    }
+
+    .mode-text {
+      font-weight: 600;
+      min-width: 120px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .mode-switch {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: opacity 0.3s ease;
+    }
+
+    .mode-switch .mode-arrow {
+      color: rgba(28, 27, 31, 1);
+    }
+
+    .mode-switch.disabled {
+      opacity: 0.33;
+      pointer-events: none;
+    }
+
+    /* Sentence mode styles */
+    .sentence-card .sentence-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .sentence-card .sentence {
+        font-size: 16px;
+        line-height: 1.5;
+        color: #000000;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .sentence-card .arrow-icon {
+        transform: rotate(90deg);
+        margin: 4px auto;
+        opacity: 0.5;
+        width: 20px;
+        height: 20px;
+    }
+
+    .sentence-card.open .sentence {
+        color: #ffffff;
+    }
+
+    .sentence-input {
+        width: 100%;
+        min-height: 60px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border: none;
+        border-radius: 4px;
+        font-family: 'Fineprint Pro', serif;
+        font-size: 16px;
+        color: #000000;
+        resize: vertical;
+        transition: all 0.3s ease;
+    }
+
+    .sentence-input:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .sentence-input:focus {
+        outline: none;
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .sentence-card .word-card-feedback.hint {
+        background-color: #fef7e0;
+        color: #b06000;
+    }
+
+    .sentence-card.skipped .sentence-input {
+        background-color: #f1f3f4;
+        color: #5f6368;
+    }
+
+    .sentence-card .practice-button {
+        background: #1a73e8;
+        color: white;
+    }
+
+    .sentence-card .practice-button:hover {
+        background: #1557b0;
+    }
   </style>
 </head>
 <body>
@@ -1253,7 +1392,29 @@
 
     <div class="divider"></div>
     
-    <h2 class="words-title">Words</h2>
+    <h2 class="words-title">
+        <span class="mode-switch left-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="7" height="10" viewBox="0 0 7 10" fill="none" class="mode-arrow">
+                <path d="M5.5 10L0.5 5L5.5 0L6.5625 1.0625L2.625 5L6.5625 8.9375L5.5 10Z" fill="currentColor"/>
+            </svg>
+        </span>
+        <div class="mode-container">
+            <div class="mode-slider">
+                <div class="mode-text">Words</div>
+                <div class="mode-text">Sentences</div>
+            </div>
+        </div>
+        <span class="mode-switch right-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none" class="mode-arrow">
+                <mask id="mask0_216_37" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="21" height="20">
+                    <rect x="0.5" width="20" height="20" fill="#D9D9D9"/>
+                </mask>
+                <g mask="url(#mask0_216_37)">
+                    <path d="M11.375 10L7.4375 6.0625L8.5 5L13.5 10L8.5 15L7.4375 13.9375L11.375 10Z" fill="currentColor"/>
+                </g>
+            </svg>
+        </span>
+    </h2>
 
     <div id="words-container">
       <!-- Word cards will be dynamically added here -->
