@@ -1,3 +1,4 @@
+// Global PromptService class
 class PromptService {
     constructor() {
         this.session = null;
@@ -86,7 +87,14 @@ class PromptService {
     }
 
     async prompt(text, { streaming = false, onChunk = null } = {}) {
-        console.log('Prompting AI...', { text, streaming, usingFallback: this.usingFallback });
+        console.log('=== PromptService.prompt ===');
+        console.log('Input:', {
+            text: text,
+            streaming: streaming,
+            usingFallback: this.usingFallback,
+            sessionExists: !!this.session
+        });
+
         if (!this.session) {
             console.log('No session, initializing...');
             const initialized = await this.initialize();
@@ -104,54 +112,98 @@ class PromptService {
                 // Using alternative AI API
                 console.log('Using fallback API for prompt');
                 if (!isSimilarityCheck) {
-                    // For regular prompts, add a prefix to ensure proper response format
                     text = `Respond to this request as a helpful assistant. Do not use any special format or scoring system in your response: ${text}`;
                 }
                 
-                if (streaming && onChunk) {
-                    let fullResponse = '';
-                    const response = await this.session.prompt(text, { stream: true });
-                    for await (const chunk of response) {
-                        console.log('Received chunk:', chunk);
-                        fullResponse += chunk;
-                        onChunk(chunk);
+                try {
+                    if (streaming && onChunk) {
+                        let fullResponse = '';
+                        console.log('Starting streaming response...');
+                        const response = await this.session.prompt(text, { stream: true });
+                        for await (const chunk of response) {
+                            console.log('Received chunk:', chunk);
+                            fullResponse += chunk;
+                            onChunk(chunk);
+                        }
+                        return { success: true, response: fullResponse };
+                    } else {
+                        console.log('Requesting non-streaming response...');
+                        const response = await this.session.prompt(text);
+                        return { success: true, response };
                     }
-                    console.log('Full response:', fullResponse);
-                    return { success: true, response: fullResponse };
-                } else {
-                    const response = await this.session.prompt(text);
-                    console.log('Full response:', response);
-                    return { success: true, response };
+                } catch (error) {
+                    console.error('Fallback API error:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    });
+                    throw error;
                 }
             } else {
                 // Using Chrome AI Origin Trial
                 console.log('Using Chrome AI for prompt');
-                if (streaming && onChunk) {
-                    let fullResponse = '';
-                    let previousChunk = '';
-                    const response = await this.session.promptStreaming(text);
-                    for await (const chunk of response) {
-                        console.log('Received raw chunk:', chunk);
-                        // Extract only the new content from the chunk
-                        const newContent = chunk.startsWith(previousChunk) 
-                            ? chunk.slice(previousChunk.length) 
-                            : chunk;
-                        console.log('New content:', newContent);
-                        fullResponse += newContent;
-                        onChunk(newContent);
-                        previousChunk = chunk;
+                
+                try {
+                    if (streaming && onChunk) {
+                        let fullResponse = '';
+                        let previousChunk = '';
+                        console.log('Starting Chrome AI streaming...');
+                        const response = await this.session.promptStreaming(text);
+                        for await (const chunk of response) {
+                            const newContent = chunk.startsWith(previousChunk) 
+                                ? chunk.slice(previousChunk.length) 
+                                : chunk;
+                            fullResponse += newContent;
+                            onChunk(newContent);
+                            previousChunk = chunk;
+                        }
+                        return { success: true, response: fullResponse };
+                    } else {
+                        console.log('Requesting Chrome AI response...');
+                        const response = await this.session.prompt(text);
+                        return { success: true, response };
                     }
-                    console.log('Full response:', fullResponse);
-                    return { success: true, response: fullResponse };
-                } else {
-                    const response = await this.session.prompt(text);
-                    console.log('Full response:', response);
-                    return { success: true, response };
+                } catch (error) {
+                    console.error('Chrome AI error:', {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack,
+                        raw: error
+                    });
+                    throw error;
                 }
             }
         } catch (error) {
-            console.error('Failed to generate response:', error);
-            return { success: false, error: error.message };
+            // Log the complete error object
+            console.error('=== Complete Error Details ===');
+            console.error('Error type:', typeof error);
+            console.error('Error toString:', error.toString());
+            console.error('Error properties:', Object.getOwnPropertyNames(error));
+            console.error('Error JSON:', JSON.stringify(error, null, 2));
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            
+            if (error instanceof Error) {
+                return { 
+                    success: false, 
+                    error: `${error.name}: ${error.message}`,
+                    details: {
+                        name: error.name,
+                        message: error.message,
+                        stack: error.stack
+                    }
+                };
+            } else {
+                return { 
+                    success: false, 
+                    error: typeof error === 'string' ? error : 'Unknown error occurred',
+                    details: {
+                        type: typeof error,
+                        value: String(error)
+                    }
+                };
+            }
         }
     }
 
@@ -229,4 +281,5 @@ Construct your answer in the following format and no other text: "Similarity: {s
     }
 }
 
-export const promptService = new PromptService();
+// Create global instance
+window.promptService = new PromptService();

@@ -24,7 +24,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.action === 'learnMode') {
-        handleLearnMode(request.sourceLanguage, request.targetLanguage)
+        handleLearnMode(request.sourceLanguage, request.targetLanguage, request.selectedDifficulty)
             .then(result => {
                 console.log('Learn mode completed:', result);
                 sendResponse(result);
@@ -37,8 +37,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-async function handleLearnMode(sourceLanguage, targetLanguage) {
-    console.log('Starting learn mode...', { sourceLanguage, targetLanguage });
+async function handleLearnMode(sourceLanguage, targetLanguage, selectedDifficulty) {
+    console.log('Looking for words...', { sourceLanguage, targetLanguage, selectedDifficulty });
 
     if (!('translation' in window)) {
         console.error('Translation API not available in window');
@@ -48,193 +48,258 @@ async function handleLearnMode(sourceLanguage, targetLanguage) {
     try {
         window.transpageWordCount = window.transpageWordCount || 0;
 
+        // Initialize prompt service
+        const promptAvailability = await window.promptService.checkAvailability();
+        if (!promptAvailability.available) {
+            throw new Error('AI service is not available for word selection');
+        }
+
         console.log('Creating translator...');
         const translator = await window.translation.createTranslator({
             sourceLanguage,
             targetLanguage,
         });
 
-        const walker = document.createTreeWalker(
-            document.body,
-            NodeFilter.SHOW_TEXT,
-            {
-                acceptNode: (node) => {
-                    if (!node.parentElement) {
-                        return NodeFilter.FILTER_REJECT;
-                    }
+        // Step 1: Get all paragraph elements
+        const paragraphs = document.getElementsByTagName('p');
+        const textList = Array.from(paragraphs).map(p => p.textContent);
+        console.log(`Found ${textList.length} paragraphs to process`);
 
-                    const excludeTags = [
-                        'SCRIPT', 'STYLE', 'NOSCRIPT', 'HEADER', 'FOOTER', 'NAV', 'BUTTON',
-                        'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'TITLE'
-                    ];
-                    
-                    let parent = node.parentElement;
-                    while (parent) {
-                        if (excludeTags.includes(parent.tagName)) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        parent = parent.parentElement;
-                    }
+        // Step 2: Process each paragraph
+        for (let i = 0; i < textList.length; i++) {
+            const paragraph = paragraphs[i];
+            const text = textList[i];
 
-                    return node.parentElement.tagName === 'P' ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-                }
-            }
-        );
-
-        let count = 0;
-        let node;
-        const textNodes = [];
-        const translatedElements = new Map();
-        
-        while (node = walker.nextNode()) {
-            const text = node.textContent.trim();
-            if (text && text.length > 1) {
-                textNodes.push(node);
-            }
-        }
-
-        console.log(`Found ${textNodes.length} paragraphs to process`);
-
-        let sentencesToSkip = Math.floor(Math.random() * 3) + 1; // Skip 1-3 sentences initially
-        
-        for (const node of textNodes) {
             try {
-                if (!node.parentElement || !document.contains(node.parentElement)) {
-                    console.log('Skipping node - parent no longer in document');
+                // Skip empty paragraphs or those with very short text
+                if (!text || text.trim().length < 10) {
+                    console.log('Skipping short text:', text);
                     continue;
                 }
 
-                const sentences = node.textContent.split(/([.!?]+\s+)/);
-                const translatedSentences = [];
-                
-                for (let i = 0; i < sentences.length; i++) {
-                    const sentence = sentences[i];
-                    
-                    if (/^[.!?]+\s+$/.test(sentence)) {
-                        translatedSentences.push(sentence);
-                        continue;
-                    }
+                // Clean and log the text content
+                const cleanText = text.replace(/[""'']/g, '"').trim();
+                console.log('Processing paragraph:', {
+                    original: text,
+                    cleaned: cleanText,
+                    length: cleanText.length
+                });
 
-                    if (sentencesToSkip > 0) {
-                        translatedSentences.push(sentence);
-                        sentencesToSkip--;
-                        continue;
-                    }
+                // Step 3: Ask prompt API for beneficial words
+                const prompt = `Analyze this text and select one word that would be beneficial to learn.
 
-                    const words = sentence.split(/\b/);
-                    const eligibleWords = words.filter(word => /^[a-zA-Z]{4,}$/.test(word));
-                    
-                    if (eligibleWords.length > 0) {
-                        const wordToTranslate = eligibleWords[Math.floor(Math.random() * eligibleWords.length)];
-                        let translatedSentence = sentence;
+Rules:
+- Choose a common word from the text
+- Avoid basic words (the, and, is)
+- Avoid proper nouns and technical terms
+- Only select a ${selectedDifficulty} difficulty word
 
-                        try {
-                            const translated = await translator.translate(wordToTranslate);
-                            const span = document.createElement('span');
-                            span.textContent = translated;
-                            span.dataset.originalWord = wordToTranslate;
-                            span.dataset.translatedText = translated;
-                            span.className = 'transpage-word';
-                            
-                            window.transpageWordCount++;
-                            const numberDiv = document.createElement('div');
-                            numberDiv.className = 'transpage-word-number';
-                            numberDiv.textContent = window.transpageWordCount;
-                            span.appendChild(numberDiv);
+Text: "${cleanText}"
 
-                            const placeholder = `###TRANSPAGE_WORD_${window.transpageWordCount}###`;
-                            translatedSentence = sentence.replace(wordToTranslate, placeholder);
+Respond in this EXACT format:
+"The word is {selected_word}"
 
-                            chrome.runtime.sendMessage({
-                              action: 'newTranslatedWord',
-                              data: {
-                                translatedWord: translated,
-                                originalWord: wordToTranslate
-                              }
-                            }).catch(error => {
-                              console.error('Error sending word to sidepanel:', error);
+If no suitable word of ${selectedDifficulty} difficulty is found, respond with:
+"The word is NONE"`;
+
+                console.log('Sending prompt to AI service:', {
+                    promptLength: prompt.length,
+                    textLength: cleanText.length
+                });
+
+                const wordResult = await window.promptService.prompt(prompt);
+                console.log('Raw AI response:', wordResult);
+
+                if (!wordResult || !wordResult.success) {
+                    console.error('=== AI Service Error ===');
+                    console.error('Error details:', {
+                        error: typeof wordResult?.error === 'object' ? 
+                            JSON.stringify(wordResult.error, null, 2) : 
+                            wordResult?.error,
+                        details: wordResult?.details,
+                        success: wordResult?.success,
+                        response: wordResult?.response
+                    });
+                    continue;
+                }
+
+                // Extract word from the response format
+                const responseMatch = wordResult.response?.match(/The word is (\w+)/i);
+                if (!responseMatch || responseMatch[1] === 'NONE') {
+                    console.log('No suitable word found in paragraph');
+                    continue;
+                }
+
+                const wordToTranslate = responseMatch[1].trim();
+                console.log('Word selected by AI:', {
+                    word: wordToTranslate,
+                    length: wordToTranslate.length,
+                    isInText: cleanText.toLowerCase().includes(wordToTranslate.toLowerCase())
+                });
+
+                // Validate the word exists in text
+                if (!cleanText.toLowerCase().includes(wordToTranslate.toLowerCase())) {
+                    console.log('Word not found in text:', {
+                        word: wordToTranslate,
+                        foundInText: false
+                    });
+                    continue;
+                }
+
+                // For verification, check if the word matches the requested difficulty
+                const difficultyPrompt = `Rate the difficulty of this word: "${wordToTranslate}"
+
+Respond in this EXACT format:
+"The difficulty is {level}"
+
+Where {level} must be exactly one of: easy, medium, hard`;
+
+                const difficultyResult = await window.promptService.prompt(difficultyPrompt);
+                let difficulty = 'medium';  // default fallback
+
+                if (difficultyResult?.success) {
+                    const difficultyMatch = difficultyResult.response?.match(/The difficulty is (\w+)/i);
+                    if (difficultyMatch) {
+                        difficulty = difficultyMatch[1].toLowerCase();
+                        // Skip if difficulty doesn't match selected difficulty
+                        if (difficulty !== selectedDifficulty.toLowerCase()) {
+                            console.log('Skipping word due to difficulty mismatch:', {
+                                word: wordToTranslate,
+                                actualDifficulty: difficulty,
+                                requestedDifficulty: selectedDifficulty
                             });
-
-                            translatedElements.set(placeholder, span);
-                            count++;
-
-                            sentencesToSkip = Math.floor(Math.random() * 3) + 2;
-                        } catch (error) {
-                            console.error('Translation error for word:', wordToTranslate, error);
+                            continue;
                         }
-
-                        translatedSentences.push(translatedSentence);
-                    } else {
-                        translatedSentences.push(sentence);
-                        sentencesToSkip--;
                     }
                 }
+
+                // Step 4: Translate the entire paragraph for context
+                const translatedParagraph = await translator.translate(cleanText);
+                console.log('Translated paragraph:', translatedParagraph);
+
+                // Step 5: Ask AI to find the correct translation in context
+                const contextPrompt = `${translatedParagraph}
+Can you give the word that closely resembles "${wordToTranslate}" when translated to Indonesian?
+Only answer with the word and that word MUST be in the excerpt above.`;
+
+                const contextResult = await window.promptService.prompt(contextPrompt);
+                console.log('Context translation result:', contextResult);
+
+                if (!contextResult || !contextResult.success) {
+                    console.error('Failed to get contextual translation');
+                    continue;
+                }
+
+                // Use the context-aware translation
+                const translatedWord = contextResult.response.trim();
+                console.log('Translation result:', {
+                    original: wordToTranslate,
+                    translated: translatedWord,
+                    fromContext: true
+                });
+
+                // Verify the translated word exists in the translated paragraph
+                if (!translatedParagraph.toLowerCase().includes(translatedWord.toLowerCase())) {
+                    console.log('Context translation not found in paragraph:', {
+                        translation: translatedWord,
+                        paragraph: translatedParagraph
+                    });
+                    continue;
+                }
+
+                // Split the text around the original word
+                const regex = new RegExp(`\\b${wordToTranslate}\\b`);
+                const parts = text.split(regex);
                 
-                const container = document.createElement('div');
-                container.innerHTML = translatedSentences.join('');
-                
-                const replacePlaceholders = (node) => {
-                    if (node.nodeType === Node.TEXT_NODE) {
-                        const text = node.textContent;
-                        const placeholders = Array.from(translatedElements.keys());
-                        let hasPlaceholder = false;
+                if (parts.length > 1) {
+                    // Create wrapper to preserve original paragraph structure
+                    const wrapper = document.createElement(paragraph.tagName || 'div');
+                    
+                    // Copy all original styles and classes
+                    wrapper.className = paragraph.className;
+                    wrapper.style.cssText = window.getComputedStyle(paragraph).cssText;
+                    
+                    // Create the translated word span
+                    const translatedSpan = document.createElement('span');
+                    translatedSpan.textContent = translatedWord;
+                    translatedSpan.dataset.originalWord = wordToTranslate;
+                    translatedSpan.dataset.translatedText = translatedWord;
+                    translatedSpan.dataset.difficulty = difficulty;
+                    translatedSpan.className = `transpage-word transpage-word-${difficulty}`;
+                    
+                    // Add number indicator
+                    window.transpageWordCount++;
+                    const numberDiv = document.createElement('div');
+                    numberDiv.className = 'transpage-word-number';
+                    numberDiv.textContent = window.transpageWordCount;
+                    translatedSpan.appendChild(numberDiv);
+
+                    // Add click handler for the translated word
+                    translatedSpan.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        console.log('Translated word clicked:', {
+                            translatedWord,
+                            originalWord: wordToTranslate,
+                            difficulty
+                        });
                         
-                        for (const placeholder of placeholders) {
-                            if (text.includes(placeholder)) {
-                                hasPlaceholder = true;
-                                const parts = text.split(placeholder);
-                                const fragment = document.createDocumentFragment();
-                                
-                                parts.forEach((part, index) => {
-                                    if (part) fragment.appendChild(document.createTextNode(part));
-                                    if (index < parts.length - 1) {
-                                        const span = translatedElements.get(placeholder).cloneNode(true);
-                                        span.addEventListener('click', () => {
-                                            chrome.runtime.sendMessage({
-                                                action: 'openWordCard',
-                                                data: {
-                                                    translatedWord: span.dataset.translatedText,
-                                                    originalWord: span.dataset.originalWord
-                                                }
-                                            });
-                                        });
-                                        fragment.appendChild(span);
-                                    }
-                                });
-                                
-                                node.parentNode.replaceChild(fragment, node);
-                                break;
+                        try {
+                            const response = await chrome.runtime.sendMessage({
+                                action: 'openWordCard',
+                                data: {
+                                    translatedWord: translatedWord,
+                                    originalWord: wordToTranslate,
+                                    context: text,
+                                    difficulty: difficulty
+                                }
+                            });
+                            console.log('Response from sidepanel:', response);
+                            
+                            if (!response || !response.success) {
+                                console.error('Failed to open word card:', response);
                             }
+                        } catch (error) {
+                            console.error('Error sending openWordCard message:', error);
                         }
-                        return hasPlaceholder;
-                    }
-                    return false;
-                };
+                    });
 
-                const processNode = (node) => {
-                    const childNodes = Array.from(node.childNodes);
-                    for (const child of childNodes) {
-                        if (child.nodeType === Node.TEXT_NODE) {
-                            if (replacePlaceholders(child)) continue;
-                        } else {
-                            processNode(child);
+                    // Reconstruct the paragraph with the translated word in place
+                    wrapper.appendChild(document.createTextNode(parts[0]));
+                    wrapper.appendChild(translatedSpan);
+                    wrapper.appendChild(document.createTextNode(parts[1]));
+
+                    // Copy over all attributes to preserve everything
+                    Array.from(paragraph.attributes).forEach(attr => {
+                        if (attr.name !== 'style' && attr.name !== 'class') {
+                            wrapper.setAttribute(attr.name, attr.value);
                         }
-                    }
-                };
+                    });
 
-                processNode(container);
-                
-                while (container.firstChild) {
-                    node.parentElement.insertBefore(container.firstChild, node);
+                    // Replace the original paragraph
+                    paragraph.parentNode.replaceChild(wrapper, paragraph);
+
+                    // Step 10: Send word to sidepanel
+                    chrome.runtime.sendMessage({
+                        action: 'newTranslatedWord',
+                        data: {
+                            translatedWord: translatedWord,
+                            originalWord: wordToTranslate,
+                            context: text,
+                            difficulty: difficulty
+                        }
+                    }).catch(error => {
+                        console.error('Error sending word to sidepanel:', error);
+                    });
                 }
-                node.parentElement.removeChild(node);
 
             } catch (error) {
-                console.error('Error processing node:', error);
+                console.error('Error processing paragraph:', error);
+                continue; // Skip this paragraph and continue with the next
             }
         }
 
-        return { success: true, count };
+        return { success: true, count: window.transpageWordCount };
 
     } catch (error) {
         console.error('Learn mode error:', error);

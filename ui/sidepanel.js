@@ -2,9 +2,6 @@
 let translatedWords = [];
 let collectedWords = [];  // Array to collect words during learning mode
 
-import { promptService } from '../scripts/promptService.js';
-import { translationService } from '../scripts/translationService.js';
-
 console.log('Transpage sidepanel loaded');
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -24,6 +21,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const translateButton = document.getElementById('translateButton');
 
   // Other elements
+  const difficultyOptions = document.querySelectorAll('.difficulty-option');
+  difficultyOptions.forEach(option => {
+    option.addEventListener('click', () => {
+      // Remove selected class from all options
+      difficultyOptions.forEach(opt => opt.classList.remove('selected'));
+      // Add selected class to clicked option
+      option.classList.add('selected');
+    });
+  });
+
   const startButton = document.getElementById('start-learning');
   const statusDiv = document.getElementById('status');
   const progressDiv = document.getElementById('progress');
@@ -74,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       translateButton.disabled = true;
       try {
-        const result = await translationService.translate(
+        const result = await window.translationService.translate(
           text,
           sourceLanguageSelect.value,
           targetLanguageSelect.value
@@ -110,14 +117,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkAiButton.disabled = true;
     
     try {
-      const { available, status, provider } = await promptService.checkAvailability();
+      const { available, status, provider } = await window.promptService.checkAvailability();
       
       // Update status display
       aiStatusText.textContent = status;
       aiStatusIcon.className = 'status-icon ' + (available ? 'success' : 'error');
       
       // Update token usage if session exists
-      if (promptService.session) {
+      if (window.promptService.session) {
         updateTokenUsage();
       }
     } catch (error) {
@@ -138,8 +145,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
-    if (promptService.session) {
-      const { tokensSoFar, maxTokens } = promptService.session;
+    if (window.promptService.session) {
+      const { tokensSoFar, maxTokens } = window.promptService.session;
       const tokensLeft = maxTokens - tokensSoFar;
       
       // Update the progress bar
@@ -180,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       promptResponse.textContent = '';
 
       try {
-        const { success, response, error } = await promptService.prompt(text, {
+        const { success, response, error } = await window.promptService.prompt(text, {
           streaming: true,
           onChunk: (chunk) => {
             promptResponse.textContent += chunk;
@@ -215,26 +222,158 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let isLearningMode = false;
 
-  // Listen for new translated words
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('Sidepanel received message:', message);
+  // Card handling functions
+  function closeCard(card, immediate = false) {
+    const input = card.querySelector('.dotted-input');
+    const feedback = card.querySelector('.word-card-feedback');
     
-    if (message.action === 'newTranslatedWord' && isLearningMode) {
-      // Add word to collected words
-      collectedWords.push({
-        originalWord: message.data.originalWord,
-        translatedWord: message.data.translatedWord
-      });
-      // Create word card for the new word
-      createWordCards([{
-        originalWord: message.data.originalWord,
-        translatedWord: message.data.translatedWord
-      }]);
-    } else if (message.action === 'openWordCard') {
-      console.log('Opening word card:', message.data);
-      openWordCard(message.data.translatedWord);
+    if (immediate) {
+      card.classList.remove('open');
+      input.disabled = true;
+      input.blur();
+      feedback.className = 'word-card-feedback';
+    } else {
+      card.style.transition = 'all 0.3s ease';
+      card.classList.remove('open');
+      
+      // Wait for animation to complete before disabling input
+      setTimeout(() => {
+        input.disabled = true;
+        input.blur();
+        feedback.className = 'word-card-feedback';
+      }, 300);
+    }
+  }
+  
+  function openCard(card) {
+    // Close any other open cards first
+    document.querySelectorAll('.word-card.open').forEach(openCard => {
+      if (openCard !== card) {
+        closeCard(openCard, true);
+      }
+    });
+    
+    card.style.transition = 'all 0.3s ease';
+    card.classList.add('open');
+    
+    // Enable input after animation starts
+    setTimeout(() => {
+      const input = card.querySelector('.dotted-input');
+      input.disabled = false;
+      input.focus();
+      
+      const feedback = card.querySelector('.word-card-feedback');
+      feedback.className = 'word-card-feedback';
+    }, 50);
+    
+    // Scroll the card into view
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Listen for messages from content script
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Sidepanel received message:', request);
+
+    if (request.action === 'openWordCard') {
+      console.log('Opening word card with data:', request.data);
+      try {
+        // Find the word card with matching translated word
+        const cards = document.querySelectorAll('.word-card');
+        let foundCard = null;
+        
+        cards.forEach(card => {
+          const wordSpan = card.querySelector('.word');
+          if (wordSpan && wordSpan.textContent === request.data.translatedWord) {
+            foundCard = card;
+          }
+        });
+        
+        if (foundCard) {
+          // Open the found card
+          openCard(foundCard);
+          sendResponse({ success: true });
+        } else {
+          console.error('Word card not found for:', request.data.translatedWord);
+          sendResponse({ success: false, error: 'Word card not found' });
+        }
+      } catch (error) {
+        console.error('Error opening word card:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+      return true;
+    }
+
+    if (request.action === 'newTranslatedWord') {
+      console.log('Adding new translated word:', request.data);
+      try {
+        addWordToList(request.data);
+        console.log('Word added successfully');
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('Error adding word:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+      return true;
     }
   });
+
+  function openWordCard(data) {
+    if (!data) {
+      throw new Error('No data provided to open word card');
+    }
+
+    console.log('Opening word card with:', data);
+    const wordCard = document.getElementById('word-card');
+    if (!wordCard) {
+      console.error('Word card element not found');
+      throw new Error('Word card element not found in the DOM');
+    }
+
+    try {
+      // Update word card content
+      const originalWord = document.getElementById('original-word');
+      const translatedWord = document.getElementById('translated-word');
+      const context = document.getElementById('word-context');
+      const difficulty = document.getElementById('word-difficulty');
+
+      if (!originalWord || !translatedWord || !context || !difficulty) {
+        throw new Error('One or more word card elements not found');
+      }
+
+      originalWord.textContent = data.originalWord || '';
+      translatedWord.textContent = data.translatedWord || '';
+      context.textContent = data.context || '';
+      difficulty.textContent = data.difficulty || 'medium';
+
+      // Show the card
+      wordCard.style.display = 'block';
+
+      // Add close button event listener
+      const closeButton = wordCard.querySelector('.close-button');
+      if (closeButton) {
+        closeButton.onclick = () => {
+          console.log('Closing word card');
+          wordCard.style.display = 'none';
+        };
+      }
+    } catch (error) {
+      console.error('Error opening word card:', error);
+      throw error;
+    }
+  }
+
+  function addWordToList(data) {
+    // Add word to collected words
+    collectedWords.push({
+      originalWord: data.originalWord,
+      translatedWord: data.translatedWord
+    });
+    // Create word card for the new word
+    createWordCards([{
+      originalWord: data.originalWord,
+      translatedWord: data.translatedWord
+    }]);
+  }
 
   function initializeLearningMode() {
     if (!startButton) {
@@ -277,7 +416,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         wordsContainer.innerHTML = '';
       }
 
-      showStatus('Starting learn mode...', 'success');
+      // Get selected difficulty
+      const selectedDifficulty = document.querySelector('.difficulty-option.selected').dataset.difficulty;
+      console.log('Selected difficulty:', selectedDifficulty);
+
+      showStatus('Looking for words to learn, this might take a while...', 'success');
       showProgress();
       startButton.disabled = true;
 
@@ -291,7 +434,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         chrome.tabs.sendMessage(tab.id, {
           action: 'learnMode',
           sourceLanguage,
-          targetLanguage
+          targetLanguage,
+          selectedDifficulty
         }, (response) => {
           console.log('Learn mode response received:', response);
           resolve(response);
@@ -327,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function refreshAndRestart() {
     // Destroy the AI session before refreshing
-    await promptService.destroy();
+    await window.promptService.destroy();
     
     // Send message to content script to refresh the page
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -441,43 +585,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const input = card.querySelector('.dotted-input');
       const feedback = card.querySelector('.word-card-feedback');
       
-      const closeCard = (card, immediate = false) => {
-        const input = card.querySelector('.dotted-input');
-        const feedback = card.querySelector('.word-card-feedback');
-        
-        if (immediate) {
-          card.classList.remove('open');
-          input.disabled = true;
-          input.blur();
-          feedback.className = 'word-card-feedback';
-        } else {
-          card.style.transition = 'all 0.3s ease';
-          card.classList.remove('open');
-          
-          // Wait for animation to complete before disabling input
-          setTimeout(() => {
-            input.disabled = true;
-            input.blur();
-            feedback.className = 'word-card-feedback';
-          }, 300);
-        }
-      };
-      
-      const openCard = (card) => {
-        card.style.transition = 'all 0.3s ease';
-        card.classList.add('open');
-        
-        // Enable input after animation starts
-        setTimeout(() => {
-          const input = card.querySelector('.dotted-input');
-          input.disabled = false;
-          input.focus();
-          
-          const feedback = card.querySelector('.word-card-feedback');
-          feedback.className = 'word-card-feedback';
-        }, 50);
-      };
-      
       header.addEventListener('click', (event) => {
         // Send message to content script to scroll to the translated word
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -492,23 +599,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
-        // Close any other open cards
-        document.querySelectorAll('.word-card.open').forEach(openCard => {
-          if (openCard !== card) {
-            closeCard(openCard, true);
-          }
-        });
-
         // Toggle card state
         if (!card.classList.contains('open')) {
           openCard(card);
-        }
-      });
-
-      // Add click handler to document to close cards when clicking outside
-      document.addEventListener('click', (event) => {
-        if (!card.contains(event.target) && card.classList.contains('open')) {
-          closeCard(card);
         }
       });
 
@@ -583,7 +676,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       aiFeedback.className = 'word-card-ai-feedback visible';
       aiScore.textContent = '...';
 
-      const { success, score } = await promptService.checkSimilarity(userAnswer, correctAnswer);
+      const { success, score } = await window.promptService.checkSimilarity(userAnswer, correctAnswer);
       
       if (success) {
         aiScore.textContent = score + '%';
@@ -614,80 +707,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     checkButton.disabled = true;
   }
 
-  function openWordCard(translatedWord) {
-    const cards = document.querySelectorAll('.word-card');
-    cards.forEach(card => {
-      const wordSpan = card.querySelector('.word');
-      if (wordSpan.textContent === translatedWord) {
-        // Close other cards first
-        cards.forEach(otherCard => {
-          if (otherCard !== card && otherCard.classList.contains('open')) {
-            closeCard(otherCard, true);
-          }
-        });
-
-        // Open this card
-        card.classList.add('open');
-        // Scroll the card into view
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Focus the input
-        setTimeout(() => {
-          const input = card.querySelector('.dotted-input');
-          input.disabled = false;
-          input.focus();
-          
-          const feedback = card.querySelector('.word-card-feedback');
-          feedback.className = 'word-card-feedback';
-        }, 300);
-      }
-    });
-  }
-
-  // Status and progress functions
-  function showStatus(message, type) {
-    console.log('Status update:', message, type);
-    if (!statusDiv) return;
-    
-    statusDiv.textContent = message;
-    statusDiv.style.display = 'block';
-    statusDiv.className = 'status ' + type;
-    if (type === 'error') {
-      statusDiv.style.whiteSpace = 'pre-line';
+  // Status and progress handling functions
+  function showStatus(message, type = 'info') {
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+      statusElement.textContent = message;
+      statusElement.className = `status ${type}`;
+      statusElement.style.display = 'block';
     }
   }
 
   function hideStatus() {
-    if (!statusDiv) return;
-    statusDiv.style.display = 'none';
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+      statusElement.style.display = 'none';
+    }
   }
 
   function showProgress() {
-    if (!progressDiv) return;
-    progressDiv.style.display = 'block';
+    const progressElement = document.getElementById('progress');
+    if (progressElement) {
+      progressElement.style.display = 'block';
+    }
   }
 
   function hideProgress() {
-    if (!progressDiv) return;
-    progressDiv.style.display = 'none';
+    const progressElement = document.getElementById('progress');
+    if (progressElement) {
+      progressElement.style.display = 'none';
+    }
   }
-
-  // Handle difficulty selection
-  const difficultyPicker = document.querySelector('.difficulty-picker');
-  let selectedDifficulty = 'easy';
-
-  difficultyPicker.addEventListener('click', (e) => {
-    const button = e.target.closest('.difficulty-option');
-    if (!button) return;
-
-    // Update selected state
-    document.querySelectorAll('.difficulty-option').forEach(btn => {
-      btn.classList.remove('selected');
-    });
-    button.classList.add('selected');
-    
-    // Store selected difficulty
-    selectedDifficulty = button.dataset.difficulty;
-  });
 
   initializeLearningMode();
 });

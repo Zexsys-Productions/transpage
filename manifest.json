@@ -21,6 +21,7 @@
         "scripts/styles.js",
         "scripts/tooltip.js",
         "scripts/wordHighlight.js",
+        "scripts/promptService.js",
         "scripts/content.js"
       ]
     }

@@ -267,17 +267,21 @@
       flex: 1;
       white-space: nowrap;
       font-family: 'Frutiger Neue', sans-serif;
+      transition: all 0.2s ease;
     }
 
     .difficulty-option:not(:last-child) {
-      border-right: none;
+      border-right: 1px solid #dadce0;
     }
+
     .difficulty-option:first-child {
       border-radius: 4px 0 0 4px;
     }
+
     .difficulty-option:last-child {
       border-radius: 0 4px 4px 0;
     }
+
     .difficulty-option:hover:not(.selected) {
       background: #f1f1f1;
     }
@@ -286,6 +290,10 @@
       background: #000000;
       color: #ffffff;
       border-color: #000000;
+    }
+
+    .learn-mode-container {
+      padding: 16px;
     }
 
     .learn-mode-button {
@@ -1163,6 +1171,48 @@
       border-radius: 4px;
       background-color: white;
     }
+    .status {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .status.success {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+
+    .status.error {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+
+    .status.info {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
+
+    .progress {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .progress-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -1176,6 +1226,12 @@
       </div>
     </div>
     
+    <!-- Status and Progress Elements -->
+    <div id="status" class="status" style="display: none;"></div>
+    <div id="progress" class="progress" style="display: none;">
+      <div class="progress-spinner"></div>
+    </div>
+
     <div class="learn-mode-section">
       <div class="learn-mode-container">
         <div class="difficulty-picker">
@@ -1299,6 +1355,8 @@
     </div>
   </div>
 
-  <script src="sidepanel.js" type="module"></script>
+  <script src="../scripts/promptService.js"></script>
+  <script src="../scripts/translationService.js"></script>
+  <script src="sidepanel.js"></script>
 </body>
 </html>

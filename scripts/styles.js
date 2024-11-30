@@ -5,15 +5,13 @@ const injectStyles = (extensionId) => {
         styles.textContent = `
             @font-face {
                 font-family: 'FineprintPro';
-                src: url('chrome-extension://${extensionId}/fonts/FineprintProRegular.OTF');
+                src: url('chrome-extension://${extensionId}/fonts/FineprintProRegular.OTF') format('opentype');
                 font-weight: normal;
                 font-style: normal;
             }
             .transpage-word {
                 cursor: pointer;
-                background-color: inherit;
-                color: #000000 !important;
-                border: 2px solid #333333;
+                border: 2px solid #666666;
                 border-radius: 4px;
                 position: relative;
                 display: inline-block;

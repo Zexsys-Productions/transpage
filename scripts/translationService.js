@@ -1,4 +1,5 @@
-export class TranslationService {
+// Global TranslationService class
+class TranslationService {
   constructor() {
     console.log('TranslationService initialized');
     this.translator = null;
@@ -55,4 +56,5 @@ export class TranslationService {
   }
 }
 
-export const translationService = new TranslationService();
+// Create global instance
+window.translationService = new TranslationService();
