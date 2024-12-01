@@ -8,47 +8,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     complete: document.getElementById('complete-button')
   };
 
-  // Language definitions with their emojis
+  // Language definitions with their flags
   const languages = {
     source: [
-      { code: 'en', name: 'English', emoji: '🇺🇸' },
-      { code: 'ar', name: 'Arabic', emoji: '🇸🇦' },
-      { code: 'bg', name: 'Bulgarian', emoji: '🇧🇬' },
-      { code: 'bn', name: 'Bengali', emoji: '🇧🇩' },
-      { code: 'cs', name: 'Czech', emoji: '🇨🇿' },
-      { code: 'da', name: 'Danish', emoji: '🇩🇰' },
-      { code: 'de', name: 'German', emoji: '🇩🇪' },
-      { code: 'el', name: 'Greek', emoji: '🇬🇷' }
+      { code: 'en', name: 'English', flag: '../assets/flags/us.png' },
+      { code: 'ar', name: 'Arabic', flag: '../assets/flags/sa.png' },
+      { code: 'bg', name: 'Bulgarian', flag: '../assets/flags/bg.png' },
+      { code: 'bn', name: 'Bengali', flag: '../assets/flags/bd.png' },
+      { code: 'cs', name: 'Czech', flag: '../assets/flags/cz.png' },
+      { code: 'da', name: 'Danish', flag: '../assets/flags/dk.png' },
+      { code: 'de', name: 'German', flag: '../assets/flags/de.png' },
+      { code: 'el', name: 'Greek', flag: '../assets/flags/gr.png' }
     ],
     target: {
       'en': [
-        { code: 'id', name: 'Indonesian', emoji: '🇮🇩' },
-        { code: 'es', name: 'Spanish', emoji: '🇪🇸' },
-        { code: 'ja', name: 'Japanese', emoji: '🇯🇵' },
-        { code: 'fr', name: 'French', emoji: '🇫🇷' },
-        { code: 'hi', name: 'Hindi', emoji: '🇮🇳' },
-        { code: 'it', name: 'Italian', emoji: '🇮🇹' },
-        { code: 'ko', name: 'Korean', emoji: '🇰🇷' },
-        { code: 'nl', name: 'Dutch', emoji: '🇳🇱' },
-        { code: 'pl', name: 'Polish', emoji: '🇵🇱' },
-        { code: 'pt', name: 'Portuguese', emoji: '🇵🇹' },
-        { code: 'ru', name: 'Russian', emoji: '🇷🇺' },
-        { code: 'th', name: 'Thai', emoji: '🇹🇭' },
-        { code: 'tr', name: 'Turkish', emoji: '🇹🇷' },
-        { code: 'vi', name: 'Vietnamese', emoji: '🇻🇳' },
-        { code: 'zh', name: 'Chinese', emoji: '🇨🇳' },
-        { code: 'zh-Hant', name: 'Chinese (Traditional)', emoji: '🇹🇼' },
-        { code: 'fi', name: 'Finnish', emoji: '🇫🇮' },
-        { code: 'hr', name: 'Croatian', emoji: '🇭🇷' },
-        { code: 'hu', name: 'Hungarian', emoji: '🇭🇺' },
-        { code: 'iw', name: 'Hebrew', emoji: '🇮🇱' },
-        { code: 'lt', name: 'Lithuanian', emoji: '🇱🇹' },
-        { code: 'no', name: 'Norwegian', emoji: '🇳🇴' },
-        { code: 'ro', name: 'Romanian', emoji: '🇷🇴' },
-        { code: 'sk', name: 'Slovak', emoji: '🇸🇰' },
-        { code: 'sl', name: 'Slovenian', emoji: '🇸🇮' },
-        { code: 'sv', name: 'Swedish', emoji: '🇸🇪' },
-        { code: 'uk', name: 'Ukrainian', emoji: '🇺🇦' }
+        { code: 'id', name: 'Indonesian', flag: '../assets/flags/id.png' },
+        { code: 'es', name: 'Spanish', flag: '../assets/flags/es.png' },
+        { code: 'ja', name: 'Japanese', flag: '../assets/flags/jp.png' },
+        { code: 'fr', name: 'French', flag: '../assets/flags/fr.png' },
+        { code: 'hi', name: 'Hindi', flag: '../assets/flags/in.png' },
+        { code: 'it', name: 'Italian', flag: '../assets/flags/it.png' },
+        { code: 'ko', name: 'Korean', flag: '../assets/flags/kr.png' },
+        { code: 'nl', name: 'Dutch', flag: '../assets/flags/nl.png' },
+        { code: 'pl', name: 'Polish', flag: '../assets/flags/pl.png' },
+        { code: 'pt', name: 'Portuguese', flag: '../assets/flags/pt.png' },
+        { code: 'ru', name: 'Russian', flag: '../assets/flags/ru.png' },
+        { code: 'th', name: 'Thai', flag: '../assets/flags/th.png' },
+        { code: 'tr', name: 'Turkish', flag: '../assets/flags/tr.png' },
+        { code: 'vi', name: 'Vietnamese', flag: '../assets/flags/vn.png' },
+        { code: 'zh', name: 'Chinese', flag: '../assets/flags/cn.png' },
+        { code: 'zh-Hant', name: 'Chinese (Traditional)', flag: '../assets/flags/tw.png' },
+        { code: 'fi', name: 'Finnish', flag: '../assets/flags/fi.png' },
+        { code: 'hr', name: 'Croatian', flag: '../assets/flags/hr.png' },
+        { code: 'hu', name: 'Hungarian', flag: '../assets/flags/hu.png' },
+        { code: 'iw', name: 'Hebrew', flag: '../assets/flags/il.png' },
+        { code: 'lt', name: 'Lithuanian', flag: '../assets/flags/lt.png' },
+        { code: 'no', name: 'Norwegian', flag: '../assets/flags/no.png' },
+        { code: 'ro', name: 'Romanian', flag: '../assets/flags/ro.png' },
+        { code: 'sk', name: 'Slovak', flag: '../assets/flags/sk.png' },
+        { code: 'sl', name: 'Slovenian', flag: '../assets/flags/si.png' },
+        { code: 'sv', name: 'Swedish', flag: '../assets/flags/se.png' },
+        { code: 'uk', name: 'Ukrainian', flag: '../assets/flags/ua.png' }
       ]
     }
   };
@@ -79,24 +79,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     card.className = 'language-card';
     card.setAttribute('data-language', language.code);
     
-    const emoji = document.createElement('span');
-    emoji.className = 'language-emoji';
-    emoji.textContent = language.emoji;
-    emoji.style.fontSize = '2em';
+    const flag = document.createElement('img');
+    flag.className = 'language-flag';
+    flag.src = language.flag;
+    flag.alt = `${language.name} flag`;
+    flag.draggable = false;
     
     const name = document.createElement('span');
     name.className = 'language-name';
     name.textContent = language.name;
     
-    card.appendChild(emoji);
+    card.appendChild(flag);
     card.appendChild(name);
     
-    card.addEventListener('click', () => {
+    // Add click handler to the entire card
+    const handleClick = () => {
       if (type === 'source') {
         selectSourceLanguage(language.code);
       } else {
         selectTargetLanguage(language.code);
       }
+    };
+
+    card.addEventListener('click', handleClick);
+    card.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleClick();
     });
     
     return card;
