@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeButton = settingsElement?.querySelector('.settings-close');
   const sourceLanguageSelect = document.getElementById('sourceLanguage');
   const targetLanguageSelect = document.getElementById('targetLanguage');
+  const restartOnboardingBtn = document.getElementById('restartOnboardingBtn');
 
   // Translation UI elements
   const translationInput = document.getElementById('translationInput');
@@ -657,7 +658,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Hint button
       card.querySelector('.hint-button').addEventListener('click', () => {
         const hint = word.originalWord.charAt(0) + '_'.repeat(word.originalWord.length - 1);
-        showFeedbackWithAnimation(feedback, `Hint: ${hint}`);
+        showFeedbackWithAnimation(feedback, `Hint: ${hint}`, 'hint');
       });
 
       // Skip button
@@ -806,12 +807,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       slider.style.transform = 'translateX(0)';
       currentMode = 'words';
       clearContainer();
-      displayWordCards();
+      createWordCards(translatedWords);
     }
   }
 
   function clearContainer() {
-    wordsContainer.innerHTML = '';
+    const wordsContainer = document.getElementById('words-container');
+    if (wordsContainer) {
+      wordsContainer.innerHTML = '';
+    }
   }
 
   leftArrow.addEventListener('click', () => switchMode('prev'));
@@ -844,12 +848,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             </button>
           </div>
           <div class="buttons-right">
-            <button class="word-card-button skip-button">
-              <img src="../assets/skip_next.svg" alt="Skip">Skip
-            </button>
-            <button class="word-card-button hint-button">
-              <img src="../assets/fluorescent.svg" alt="Hint">Hint
-            </button>
             <button class="word-card-button check-button">
               <img src="../assets/check.svg" alt="Check">Check
             </button>
@@ -872,8 +870,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const input = card.querySelector('.sentence-input');
     const feedback = card.querySelector('.word-card-feedback');
     const checkButton = card.querySelector('.check-button');
-    const skipButton = card.querySelector('.skip-button');
-    const hintButton = card.querySelector('.hint-button');
 
     header.addEventListener('click', (event) => {
       // If clicking input or already open card, return
@@ -887,20 +883,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    // Add button handlers
+    // Add check button handler
     checkButton.addEventListener('click', () => {
       checkSentenceAnswer(card, sentence);
-    });
-
-    skipButton.addEventListener('click', () => {
-      showSentenceFeedback(card, `The correct translation is: ${sentence.originalText}`, false);
-      card.classList.add('skipped');
-    });
-
-    hintButton.addEventListener('click', () => {
-      const words = sentence.originalText.split(' ');
-      const hint = words.map(word => word[0] + '_'.repeat(word.length - 1)).join(' ');
-      showSentenceFeedback(card, `Hint: ${hint}`, 'hint');
     });
   }
 
@@ -964,16 +949,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (success) {
             const isCorrect = score >= 70; // Using AI score threshold
-            showSentenceFeedback(card, isCorrect ? 'Correct!' : `Incorrect. The correct translation is: ${correctAnswer}`, isCorrect);
+            
+            // Format the feedback message for better readability
+            const feedbackMessage = isCorrect 
+                ? 'Correct!' 
+                : `Incorrect.\n\nCorrect translation:\n${correctAnswer}`;
+            
+            showSentenceFeedback(card, feedbackMessage, isCorrect);
             
             aiScore.textContent = score + '%';
             aiFeedback.classList.add(score >= 70 ? 'high-score' : 'low-score');
 
-            // Add correct/incorrect class and close card after delay
+            // Add correct/incorrect class and close card after longer delay for sentences
             setTimeout(() => {
                 card.classList.remove('open');
                 card.classList.add(isCorrect ? 'correct' : 'incorrect');
-            }, 2000);
+            }, 3000); // Increased delay to give more time to read
         } else {
             showSentenceFeedback(card, 'Error checking answer. Please try again.', false);
             aiFeedback.style.display = 'none';
@@ -987,8 +978,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function showSentenceFeedback(card, message, type) {
     const feedback = card.querySelector('.word-card-feedback');
     const className = type === true ? 'correct' : 
-                     type === false ? 'incorrect' : 
-                     type === 'hint' ? 'hint' : '';
+                     type === false ? 'incorrect' : '';
     
     feedback.className = `word-card-feedback visible ${className}`;
     feedback.textContent = message;
@@ -1001,4 +991,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeModeSwitch();
 
   initializeLearningMode();
+
+  // Add restart onboarding functionality
+  if (restartOnboardingBtn) {
+    restartOnboardingBtn.addEventListener('click', async () => {
+      try {
+        // Reset the onboarding status
+        await chrome.storage.local.set({ onboardingCompleted: false });
+        // Redirect to onboarding page
+        window.location.href = 'onboarding.html';
+      } catch (error) {
+        console.error('Error restarting onboarding:', error);
+      }
+    });
+  }
 });

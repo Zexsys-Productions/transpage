@@ -8,7 +8,8 @@
     "tabs",
     "activeTab",
     "scripting",
-    "aiLanguageModelOriginTrial"
+    "aiLanguageModelOriginTrial",
+    "storage"
   ],
   "background": {
     "service_worker": "scripts/background.js",
@@ -27,7 +28,7 @@
     }
   ],
   "side_panel": {
-    "default_path": "ui/sidepanel.html"
+    "default_path": "ui/onboarding.html"
   },
   "web_accessible_resources": [
     {

@@ -47,6 +47,16 @@ async function handleLearnMode(sourceLanguage, targetLanguage, selectedDifficult
     }
 
     try {
+        // Validate language pair support
+        const canTranslate = await window.translation.canTranslate({
+            sourceLanguage,
+            targetLanguage,
+        });
+
+        if (canTranslate === 'no') {
+            throw new Error(`Translation not supported for ${sourceLanguage} to ${targetLanguage}`);
+        }
+
         window.transpageWordCount = window.transpageWordCount || 0;
 
         // Initialize prompt service
@@ -325,6 +335,16 @@ async function handleSentenceMode(sourceLanguage, targetLanguage) {
     }
 
     try {
+        // Validate language pair support
+        const canTranslate = await window.translation.canTranslate({
+            sourceLanguage,
+            targetLanguage,
+        });
+
+        if (canTranslate === 'no') {
+            throw new Error(`Translation not supported for ${sourceLanguage} to ${targetLanguage}`);
+        }
+
         window.transpageSentenceCount = window.transpageSentenceCount || 0;
 
         console.log('Creating translator...');
