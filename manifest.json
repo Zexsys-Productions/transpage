@@ -1,15 +1,59 @@
 {
   "manifest_version": 3,
   "name": "Transpage",
-  "version": "0.1",
-  "description": "Learn a language just by browsing the web",
+  "version": "1.0",
+  "description": "A Chrome extension for learning languages through webpage translation",
+  "icons": {
+    "16": "assets/logo-sq.png",
+    "32": "assets/logo-sq.png",
+    "48": "assets/logo-sq.png",
+    "128": "assets/logo-sq.png"
+  },
+  "permissions": [
+    "sidePanel",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "aiLanguageModelOriginTrial",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "scripts/background.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
-      "js": ["scripts/content.js"],
-      "matches": [
-        "https://developer.chrome.com/docs/extensions/*",
-        "https://developer.chrome.com/docs/webstore/*"
+      "matches": ["<all_urls>"],
+      "js": [
+        "scripts/styles.js",
+        "scripts/tooltip.js",
+        "scripts/wordHighlight.js",
+        "scripts/promptService.js",
+        "scripts/content.js"
       ]
     }
+  ],
+  "side_panel": {
+    "default_path": "ui/onboarding.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["ui/*", "fonts/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_title": "Transpage",
+    "default_icon": {
+      "16": "assets/logo-sq.png",
+      "32": "assets/logo-sq.png",
+      "48": "assets/logo-sq.png",
+      "128": "assets/logo-sq.png"
+    }
+  },
+  "host_permissions": ["<all_urls>"],
+  "trial_tokens": [
+    "Ag2e6dto79AYkZ6wMg8h+fLixdDVoKapWggVhlu3v7/GRf7U9PuGxSEbvcNCei0T5asY3usg35TKGEWIWKQMOQ8AAABveyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYm5kb2dwaG9oaG9ubGxubGVpZWZrbGJmaWFqYWZpZmgiLCJmZWF0dXJlIjoiVHJhbnNsYXRpb25BUEkiLCJleHBpcnkiOjE3NTMxNDI0MDB9",
+    "AjixqOdLKo92PM+yCmX/0sau+bZ59b7yuu2MS7seuNB/3BenjBJfHtVMsyPvL8AA7GL+B064oUfaiQsE2HzPZwgAAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYm5kb2dwaG9oaG9ubGxubGVpZWZrbGJmaWFqYWZpZmgiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"
   ]
 }

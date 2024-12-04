@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Transpage</title>
+  <style>
+    @font-face {
+      font-family: 'Frutiger Neue';
+      src: url('../fonts/Frutiger Neue LT W1G.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Fineprint Pro';
+      src: url('../fonts/FineprintProRegular.OTF') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    body {
+      padding: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 14px;
+      background-color: #ffffff;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 100%;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+    }
+    .header .logo {
+      height: 24px;
+      width: auto;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+    }
+    #settingsButton {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+    #settingsButton:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+    #settingsButton img {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+    .settings-button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+    }
+    .settings-button:hover {
+      background-color: #f1f1f1;
+    }
+    .settings-button img {
+      width: 16px;
+      height: 16px;
+    }
+    .divider {
+      height: 2px;
+      background-color: #dadce0;
+      margin: 0;
+      width: 100%;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+    label {
+      font-weight: 500;
+      color: #5f6368;
+      font-size: 13px;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #dadce0;
+      background-color: white;
+      font-size: 13px;
+      outline: none;
+    }
+    select:focus {
+      border-color: #1a73e8;
+    }
+    button {
+      width: 100%;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #1557b0;
+    }
+    button:disabled {
+      background-color: #dadce0;
+      cursor: not-allowed;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+    .button-group button {
+      flex: 1;
+    }
+    .secondary-button {
+      background-color: #fff;
+      color: #1a73e8;
+      border: 1px solid #1a73e8;
+    }
+    .secondary-button:hover {
+      background-color: #f8f9fa;
+    }
+    .secondary-button:disabled {
+      border-color: #dadce0;
+      color: #dadce0;
+      background-color: #fff;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+      word-wrap: break-word;
+      font-family: 'Frutiger Neue', sans-serif;
+    }
+    .status.success {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+    .status.error {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+    .status.info {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
+    .progress {
+      display: none;
+      margin-top: 12px;
+      width: 100%;
+    }
+    .progress-bar {
+      height: 3px;
+      background-color: #e6f4ea;
+      border-radius: 1.5px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background-color: #1a73e8;
+      width: 100%;
+      transform: translateX(-100%);
+      animation: progress 2s infinite linear;
+    }
+    @keyframes progress {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .loading-bar-container {
+      width: 100%;
+      height: 4px;
+      background-color: #f1f3f4;
+      border-radius: 2px;
+      margin: 8px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .loading-bar {
+      height: 100%;
+      width: 30%;
+      background-color: #1a73e8;
+      border-radius: 2px;
+      animation: loading 1.5s infinite linear;
+    }
+
+    @keyframes loading {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(400%);
+      }
+    }
+
+    /* Quiz styles */
+    #quiz-container {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dadce0;
+    }
+    .translated-word {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1a73e8;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    #guess-input {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    #guess-input:focus {
+      border-color: #1a73e8;
+    }
+    .quiz-feedback {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: 500;
+      display: none;
+    }
+    .quiz-feedback.correct {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+    .quiz-feedback.incorrect {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+    .quiz-feedback.revealed {
+      background-color: #fef7e0;
+      color: #b06000;
+    }
+    .learn-mode-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+
+    .difficulty-picker {
+      display: flex;
+      overflow: hidden;
+      border-radius: 4px;
+      width: 70%;
+      border: 1px solid #dadce0;
+    }
+
+    .difficulty-option {
+      padding: 6px 12px;
+      font-size: 12px;
+      border: none;
+      background: #ffffff;
+      color: #000000;
+      cursor: pointer;
+      flex: 1;
+      white-space: nowrap;
+      font-family: 'Frutiger Neue', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    .difficulty-option:not(:last-child) {
+      border-right: 1px solid #dadce0;
+    }
+
+    .difficulty-option:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+
+    .difficulty-option:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+
+    .difficulty-option:hover:not(.selected) {
+      background: #f1f1f1;
+    }
+
+    .difficulty-option.selected {
+      background: #000000;
+      color: #ffffff;
+      border-color: #000000;
+    }
+
+    .learn-mode-container {
+      padding: 16px;
+    }
+
+    .learn-mode-button {
+      padding: 6px 12px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Frutiger Neue', sans-serif;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      white-space: nowrap;
+      width: 30%;
+    }
+
+    .learn-mode-button:hover {
+      background-color: #1557b0;
+    }
+
+    .learn-mode-button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .learn-mode-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .words-title {
+      font-family: 'Frutiger Neue', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #000000;
+      margin:16px 0;
+      text-align: center;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .mode-switch {
+      cursor: pointer;
+      color: #666;
+      transition: color 0.2s ease;
+    }
+
+    .mode-switch:hover {
+      color: #007bff;
+    }
+
+    .mode-switch {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .mode-switch .mode-arrow {
+      color: rgba(28, 27, 31, 0.33); /* inactive state color */
+    }
+
+    .mode-switch.active .mode-arrow {
+      color: rgba(28, 27, 31, 1); /* active state color */
+    }
+
+    /* Word Cards Styles */
+    #words-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 0;
+    }
+
+    .word-card {
+      margin: 8px 8px;
+      border-radius: 8px;
+      transform-origin: top;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      font-family: 'Frutiger Neue', sans-serif;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+      position: relative;
+    }
+
+    .word-card:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .word-card.open {
+      background: #000000;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      transform: translateY(-4px);
+    }
+
+    .word-card-number {
+      position: absolute;
+      left: -6px;
+      top: -6px;
+      width: 18px;
+      height: 18px;
+      background-color: #ffffff;
+      color: #000000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-family: 'Frutiger Neue', sans-serif;
+      z-index: 2;
+      font-weight: 500;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .word-card.correct .word-card-number {
+      background-color: #1e8e3e;
+      color: #ffffff;
+    }
+
+    .word-card.incorrect .word-card-number {
+      background-color: #d93025;
+      color: #ffffff;
+    }
+
+    .word-card.open .word-card-number {
+      background-color: #000000;
+      color: #ffffff;
+    }
+
+    .word-card-header {
+      padding: 16px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: transparent;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    .word-container {
+      display: grid;
+      grid-template-columns: auto 1fr 24px 1fr auto;
+      align-items: center;
+      position: relative;
+      gap: 12px;
+      padding: 4px 24px;
+      transition: all 0.3s ease;
+      background: transparent;
+    }
+
+    .word-container.vertical {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      justify-items: center;
+      gap: 8px;
+    }
+
+    .word-container.vertical .word {
+      grid-row: 1;
+      text-align: center;
+      width: 100%;
+    }
+
+    .word-container.vertical .arrow-icon {
+      grid-row: 2;
+      transform: rotate(45deg);
+      margin: 4px 0;
+    }
+
+    .word-container.vertical .dotted-input {
+      grid-row: 3;
+      width: 80% !important;
+      max-width: 300px;
+    }
+
+    .word-card-content {
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .word-card.open .word-card-content {
+      padding: 12px;
+      max-height: 160px;
+    }
+
+    .word-card-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+    }
+
+    .buttons-left {
+      display: flex;
+      gap: 4px;
+    }
+
+    .buttons-right {
+      display: flex;
+      gap: 4px;
+    }
+
+    .word-card-button {
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+      font-family: 'Frutiger Neue', sans-serif;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      min-width: fit-content;
+    }
+
+    .word-card-button img {
+      width: 14px;
+      height: 14px;
+      filter: brightness(100);
+      flex-shrink: 0;
+    }
+
+    .report-button {
+      background: #d93025;
+      color: white;
+    }
+
+    .report-button:hover {
+      background: #c5221f;
+    }
+
+    .skip-button {
+      background: #5f6368;
+      color: white;
+    }
+
+    .skip-button:hover {
+      background: #494c50;
+    }
+
+    .hint-button {
+      background: #ffd700;
+      color: #000000;
+    }
+
+    .hint-button:hover {
+      background: #ffc400;
+    }
+
+    .hint-button img {
+      filter: brightness(0);
+    }
+
+    .check-button {
+      background: #1e8e3e;
+      color: white;
+    }
+
+    .check-button:hover {
+      background: #137333;
+    }
+
+    .word-card-feedback-container {
+      min-height: 0;
+      transition: min-height 0.3s ease;
+      margin-top: 4px;
+    }
+
+    .word-card-feedback {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: 4px;
+      text-align: center;
+      color: #ffffff;
+      font-family: 'Frutiger Neue', sans-serif;
+      transition: all 0.3s ease;
+      transform: translateY(-10px);
+      font-size: 13px;
+      visibility: hidden;
+      margin-bottom: 0;
+      line-height: 1.2;
+    }
+
+    .word-card-feedback.visible {
+      max-height: 32px;
+      opacity: 1;
+      padding: 6px;
+      transform: translateY(0);
+      visibility: visible;
+      margin-bottom: 4px;
+    }
+
+    .word-card-feedback.correct {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+
+    .word-card-feedback.incorrect {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+
+    .word-card-feedback.hint {
+      background-color: #fef7e0;
+      color: #b06000;
+    }
+
+    .word-card-header .word {
+      font-weight: 700;
+      color: #000000;
+      font-family: 'Frutiger Neue', sans-serif;
+      grid-column: 1;
+      transition: color 0.3s ease;
+      font-size: 20px;
+      letter-spacing: -0.2px;
+    }
+
+    .arrow-icon {
+      width: 20px;
+      height: 20px;
+      filter: brightness(0);
+      justify-self: center;
+      grid-column: 3;
+      transition: filter 0.3s ease;
+      margin-top: 2px;
+    }
+
+    .dotted-input {
+      height: 28px;
+      background-color: #f8f9fa;
+      border: none;
+      font-family: 'Fineprint Pro', serif;
+      font-size: 16px;
+      color: #000000;
+      width: calc(var(--char-width) * (var(--original-length) + 2));
+      --char-width: 10px;
+      grid-column: 5;
+      padding: 4px 8px;
+      background-image: radial-gradient(circle, #000 30%, transparent 40%);
+      background-position: bottom;
+      background-size: 4px 2px;
+      background-repeat: repeat-x;
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 2;
+      cursor: text;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+
+    .dotted-input:disabled {
+      opacity: 1;
+      -webkit-text-fill-color: #000000;
+      pointer-events: none;
+    }
+
+    .dotted-input:focus {
+      outline: none;
+      background-image: radial-gradient(circle, #000 30%, transparent 40%);
+    }
+
+    .word-card.open .word {
+      color: #ffffff;
+    }
+
+    .word-card.open .arrow-icon {
+      filter: brightness(100);
+    }
+
+    /* Adjust the content padding when open */
+    .word-card.open .word-card-content {
+      padding: 12px;
+      max-height: 160px;
+    }
+
+    .word-card-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+    }
+
+    .word-card-ai-feedback {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+      margin-top: 8px;
+      background-color: #f8f9fa;
+      border: 1px solid #dadce0;
+      color: #5f6368;
+    }
+
+    .word-card-ai-feedback.visible {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .word-card-ai-feedback .ai-score {
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .word-card-ai-feedback .ai-icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.7;
+    }
+
+    .word-card-ai-feedback.high-score {
+      background-color: #e6f4ea;
+      border-color: #1e8e3e;
+      color: #1e8e3e;
+    }
+
+    .word-card-ai-feedback.low-score {
+      background-color: #fce8e6;
+      border-color: #d93025;
+      color: #d93025;
+    }
+
+    /* Enhanced hint styles */
+    .word-card-hint {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #dadce0;
+      font-size: 13px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      padding: 0 12px;
+      margin: 0;
+    }
+
+    .word-card-hint.visible {
+      max-height: 200px;
+      opacity: 1;
+      padding: 8px 12px;
+      margin-top: 12px;
+    }
+
+    .part-of-speech {
+      display: inline-block;
+      padding: 2px 6px;
+      background-color: #e8f0fe;
+      color: #1a73e8;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-right: 8px;
+      text-transform: lowercase;
+    }
+
+    .hint-text {
+      color: #5f6368;
+      font-style: italic;
+    }
+
+    /* Hint button active state */
+    .word-card-button.hint-button.active {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
+    
+    .word-card-button.hint-button.active img {
+      filter: invert(40%) sepia(93%) saturate(1352%) hue-rotate(203deg) brightness(119%) contrast(119%);
+    }
+
+    /* Add settings menu styles */
+    .settings-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      backdrop-filter: blur(4px);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .settings-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      max-width: 400px;
+      width: 90%;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    #settings {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 998;
+      pointer-events: none;
+    }
+
+    #settings.visible {
+      pointer-events: auto;
+    }
+
+    #settings.visible .settings-overlay {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #settings.visible .settings-container {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .settings-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-close:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+      transform: scale(1.05);
+    }
+
+    .settings-close:active {
+      background-color: rgba(0, 0, 0, 0.12);
+      transform: scale(0.95);
+    }
+
+    .settings-close img {
+      width: 20px;
+      height: 20px;
+      color: #666;
+      transition: color 0.2s ease-in-out;
+    }
+
+    .settings-close:hover img {
+      color: #333;
+    }
+
+    .settings-section {
+      margin-bottom: 20px;
+    }
+    
+    .ai-status {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .token-usage {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #4b5563;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .token-progress {
+      flex: 1;
+      height: 4px;
+      background-color: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .token-progress-bar {
+      height: 100%;
+      background-color: #1a73e8;
+      transition: width 0.3s ease;
+    }
+
+    .token-numbers {
+      font-family: 'Frutiger Neue', monospace;
+      white-space: nowrap;
+    }
+
+    .status-text {
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background-color: #f1f3f4;
+    }
+
+    .status-text.available {
+      background-color: #e6f4ea;
+      color: #1e8e3e;
+    }
+
+    .status-text.unavailable {
+      background-color: #fce8e6;
+      color: #d93025;
+    }
+
+    .check-ai-button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background-color: #1a73e8;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+
+    .check-ai-button:hover {
+      background-color: #1557b0;
+    }
+
+    .check-ai-button:disabled {
+      background-color: #dadce0;
+      cursor: not-allowed;
+    }
+
+    /* Confirmation popup styles */
+    .confirmation-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background-color: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-family: 'Frutiger Neue', sans-serif;
+      width: 320px;
+      text-align: center;
+    }
+
+    .confirmation-popup.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .confirmation-popup-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+    }
+
+    .confirmation-popup-message {
+      color: #1f2937;
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .confirmation-popup-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .confirmation-popup-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Frutiger Neue', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .confirmation-popup-button.confirm-button {
+      background-color: #1a73e8;
+      color: white;
+    }
+
+    .confirmation-popup-button.confirm-button:hover {
+      background-color: #1557b0;
+    }
+
+    .confirmation-popup-button.cancel-button {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .confirmation-popup-button.cancel-button:hover {
+      background-color: #e5e7eb;
+    }
+
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .popup-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .mode-container {
+      position: relative;
+      overflow: hidden;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      width: 120px;
+    }
+
+    .mode-slider {
+      display: flex;
+      transition: transform 0.3s ease;
+      position: absolute;
+      left: 0;
+      width: 240px;
+    }
+
+    .mode-text {
+      font-weight: 600;
+      min-width: 120px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .mode-switch {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: opacity 0.3s ease;
+    }
+
+    .mode-switch .mode-arrow {
+      color: rgba(28, 27, 31, 1);
+    }
+
+    .mode-switch.disabled {
+      opacity: 0.33;
+      pointer-events: none;
+    }
+
+    /* Sentence mode styles */
+    .sentence-card .sentence-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .sentence-card .sentence {
+        font-size: 16px;
+        line-height: 1.5;
+        color: #000000;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .sentence-card .arrow-icon {
+        transform: rotate(90deg);
+        margin: 4px auto;
+        opacity: 0.5;
+        width: 20px;
+        height: 20px;
+    }
+
+    .sentence-card.open .sentence {
+        color: #ffffff;
+    }
+
+    .sentence-input {
+        width: 100%;
+        min-height: 60px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border: none;
+        border-radius: 4px;
+        font-family: 'Fineprint Pro', serif;
+        font-size: 16px;
+        color: #000000;
+        resize: vertical;
+        transition: all 0.3s ease;
+    }
+
+    .sentence-input:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .sentence-input:focus {
+        outline: none;
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .sentence-card .word-card-feedback.hint {
+        background-color: #fef7e0;
+        color: #b06000;
+    }
+
+    .sentence-card.skipped .sentence-input {
+        background-color: #f1f3f4;
+        color: #5f6368;
+    }
+
+    .sentence-card .practice-button {
+        background: #1a73e8;
+        color: white;
+    }
+
+    .sentence-card .practice-button:hover {
+        background: #1557b0;
+    }
+
+    /* Sentence mode styles - update button spacing */
+    .sentence-card .word-card-buttons {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .sentence-card .buttons-right {
+        display: flex;
+        gap: 8px;
+    }
+
+    /* Sentence feedback styles */
+    .sentence-card .word-card-feedback-container {
+        padding: 0 12px 12px;
+    }
+
+    .sentence-card .word-card-feedback {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 0 12px;
+        margin-bottom: 8px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+
+    .sentence-card .word-card-feedback.visible {
+        max-height: none;
+        opacity: 1;
+        padding: 12px;
+    }
+
+    .sentence-card .word-card-feedback.correct {
+        background-color: #e6f4ea;
+        color: #1e8e3e;
+    }
+
+    .sentence-card .word-card-feedback.incorrect {
+        background-color: #fce8e6;
+        color: #d93025;
+    }
+
+    .sentence-card .word-card-ai-feedback {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-size: 14px;
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .sentence-card .word-card-ai-feedback.visible {
+        opacity: 1;
+        max-height: none;
+        margin-top: 8px;
+    }
+
+    .sentence-card .word-card-ai-feedback.high-score {
+        background-color: #e6f4ea;
+        color: #1e8e3e;
+    }
+
+    .sentence-card .word-card-ai-feedback.low-score {
+        background-color: #fce8e6;
+        color: #d93025;
+    }
+
+    /* Ensure content expands properly */
+    .sentence-card.open .word-card-content {
+        max-height: none;
+        height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="../assets/logo.svg" alt="Transpage" class="logo">
+      <div class="header-right">
+        <button id="settingsButton">
+          <img src="../assets/settings.svg" alt="Settings">
+        </button>
+      </div>
+    </div>
+    
+    <!-- Status and Progress Elements -->
+    <div id="status" class="status" style="display: none;"></div>
+    <div id="loading-bar-container" class="loading-bar-container">
+      <div class="loading-bar"></div>
+    </div>
+    <div id="progress" class="progress" style="display: none;">
+      <div class="progress-spinner"></div>
+    </div>
+
+    <div class="learn-mode-section">
+      <div class="learn-mode-container">
+        <div class="difficulty-picker">
+          <button class="difficulty-option selected" data-difficulty="easy">Easy</button>
+          <button class="difficulty-option" data-difficulty="medium">Medium</button>
+          <button class="difficulty-option" data-difficulty="hard">Hard</button>
+        </div>
+        <button id="start-learning" class="learn-mode-button">Learn</button>
+      </div>
+
+      <div id="status" class="status"></div>
+      
+      <div id="progress" class="progress">
+        <div class="progress-bar">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    
+    <h2 class="words-title">
+        <span class="mode-switch left-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="7" height="10" viewBox="0 0 7 10" fill="none" class="mode-arrow">
+                <path d="M5.5 10L0.5 5L5.5 0L6.5625 1.0625L2.625 5L6.5625 8.9375L5.5 10Z" fill="currentColor"/>
+            </svg>
+        </span>
+        <div class="mode-container">
+            <div class="mode-slider">
+                <div class="mode-text">Words</div>
+                <div class="mode-text">Sentences</div>
+            </div>
+        </div>
+        <span class="mode-switch right-arrow">
+            <svg xmlns="http://www.w3.org/2000/svg" width="21" height="20" viewBox="0 0 21 20" fill="none" class="mode-arrow">
+                <mask id="mask0_216_37" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="21" height="20">
+                    <rect x="0.5" width="20" height="20" fill="#D9D9D9"/>
+                </mask>
+                <g mask="url(#mask0_216_37)">
+                    <path d="M11.375 10L7.4375 6.0625L8.5 5L13.5 10L8.5 15L7.4375 13.9375L11.375 10Z" fill="currentColor"/>
+                </g>
+            </svg>
+        </span>
+    </h2>
+
+    <div id="words-container">
+      <!-- Word cards will be dynamically added here -->
+    </div>
+
+    <div class="divider"></div>
+  </div>
+  
+  <!-- Settings menu -->
+  <div id="settings">
+    <div class="settings-overlay"></div>
+    <div class="settings-container">
+      <button class="settings-close">
+        <img src="../assets/close.svg" alt="Close">
+      </button>
+      <h2>Settings</h2>
+      <div class="settings-section">
+        <h4 class="settings-section-title">Language Settings</h4>
+        <div class="form-group">
+          <label for="sourceLanguage">From:</label>
+          <select id="sourceLanguage">
+            <option value="en" selected>English</option>
+            <option value="ar">Arabic</option>
+            <option value="bg">Bulgarian</option>
+            <option value="bn">Bengali</option>
+            <option value="cs">Czech</option>
+            <option value="da">Danish</option>
+            <option value="de">German</option>
+            <option value="el">Greek</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="targetLanguage">To:</label>
+          <select id="targetLanguage">
+            <option value="id" selected>Indonesian</option>
+            <option value="es">Spanish</option>
+            <option value="ja">Japanese</option>
+            <option value="fr">French</option>
+            <option value="hi">Hindi</option>
+            <option value="it">Italian</option>
+            <option value="ko">Korean</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+            <option value="th">Thai</option>
+            <option value="tr">Turkish</option>
+            <option value="vi">Vietnamese</option>
+            <option value="zh">Chinese (Simplified)</option>
+            <option value="zh-Hant">Chinese (Traditional)</option>
+            <option value="fi">Finnish</option>
+            <option value="hr">Croatian</option>
+            <option value="hu">Hungarian</option>
+            <option value="iw">Hebrew</option>
+            <option value="lt">Lithuanian</option>
+            <option value="no">Norwegian</option>
+            <option value="ro">Romanian</option>
+            <option value="sk">Slovak</option>
+            <option value="sl">Slovenian</option>
+            <option value="sv">Swedish</option>
+            <option value="uk">Ukrainian</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h4 class="settings-section-title">AI Assistant</h4>
+        <div class="ai-status">
+          <div class="status-message">
+            <span id="aiStatusIcon" class="status-icon"></span>
+            <span id="aiStatusText">Checking AI availability...</span>
+          </div>
+          <div class="token-usage">
+            <div class="token-progress">
+              <div class="token-progress-bar" id="tokenProgressBar"></div>
+            </div>
+            <div class="token-numbers">
+              <span id="tokensUsed">0</span>/<span id="maxTokens">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <button id="checkAiButton" class="secondary-button">
+            Check AI Availability
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h4 class="settings-section-title">Help & Tutorial</h4>
+        <div class="form-group">
+          <button id="restartOnboardingBtn" class="secondary-button">
+            Restart Onboarding Tutorial
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="popup-overlay"></div>
+  <div class="confirmation-popup">
+    <img src="../assets/warning-icon.svg" alt="Warning" class="confirmation-popup-icon">
+    <div class="confirmation-popup-message">
+       AI session will be destroyed and learning mode will reset. Are you sure to continue?
+    </div>
+    <div class="confirmation-popup-buttons">
+      <button class="confirmation-popup-button cancel-button">Cancel</button>
+      <button class="confirmation-popup-button confirm-button">Continue</button>
+    </div>
+  </div>
+
+  <script src="../scripts/promptService.js"></script>
+  <script src="../scripts/translationService.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

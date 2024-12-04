@@ -1,0 +1,10 @@
+<svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="fluorescent">
+<mask id="mask0_67_617" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="15" height="16">
+<rect id="Bounding box" y="0.5" width="15" height="15" fill="#D9D9D9"/>
+</mask>
+<g mask="url(#mask0_67_617)">
+<path id="fluorescent_2" d="M3 9.875V6.125H12V9.875H3ZM6.9375 3.875V2H8.0625V3.875H6.9375ZM11.3125 5.40625L10.5156 4.60938L11.5781 3.54688L12.375 4.34375L11.3125 5.40625ZM6.9375 14V12.125H8.0625V14H6.9375ZM11.5781 12.4531L10.5156 11.3906L11.3125 10.5938L12.375 11.6562L11.5781 12.4531ZM3.6875 5.40625L2.625 4.34375L3.42188 3.54688L4.48438 4.60938L3.6875 5.40625ZM3.42188 12.4531L2.625 11.6562L3.6875 10.5938L4.48438 11.3906L3.42188 12.4531ZM4.125 8.75H10.875V7.25H4.125V8.75Z" fill="white"/>
+</g>
+</g>
+</svg>
