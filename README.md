@@ -3,7 +3,7 @@
 TransPage transforms your web browsing into an engaging language learning experience. This Chrome extension helps you learn new languages naturally while reading content you're interested in.
 
 ## 🎥 Demo
-https://github.com/user-attachments/assets/17780916-04eb-4ade-ba57-a2c2af0b6f59
+https://github.com/user-attachments/assets/8adc0fe2-dcd9-420f-891e-5d3a44bbb4ba
 
 ## ✨ Features
 
@@ -23,20 +23,16 @@ https://github.com/user-attachments/assets/17780916-04eb-4ade-ba57-a2c2af0b6f59
 
 1. Install the extension from the Chrome Web Store (coming soon)
 2. Click the TransPage icon in your Chrome toolbar
-3. Select your source and target languages
+3. Finish the onboarding
 4. Choose between:
-   - Translation Mode: For quick word translations
-   - Learn Mode: For interactive vocabulary learning
+   - Word Mode: For quick word translations
+   - Sentence Mode: For full sentence translations
 
 ## 🛠️ Technical Requirements
 
 - Chrome Browser version 121 or later
 - Chrome Translation API support
 - Active internet connection
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
