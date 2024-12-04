@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? 'Looking for words to learn, this might take a while...'
         : 'Processing sentences, this might take a while...';
       showStatus(statusMessage, 'success');
-      showProgress();
+      showLoadingBar();
       startButton.disabled = true;
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -442,14 +442,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         throw new Error(response?.error || 'Unknown error occurred');
       }
 
-      hideProgress();
+      hideLoadingBar();
       showStatus('Ready to learn!', 'success');
       startButton.disabled = false;
       startButton.textContent = 'Reset';
 
     } catch (error) {
       console.error('Error starting learning mode:', error);
-      hideProgress();
+      hideLoadingBar();
       showStatus(`Error: ${error.message}`, 'error');
       startButton.disabled = false;
     }
@@ -515,7 +515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function createWordCards(words) {
+  async function createWordCards(words) {
     const wordsContainer = document.getElementById('words-container');
     if (!wordsContainer) return;
 
@@ -528,17 +528,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     translatedWords = translatedWords.concat(words);
 
     // Create cards for new words
-    words.forEach((word, index) => {
+    for (const [index, word] of words.entries()) {
       const card = document.createElement('div');
       card.className = 'word-card';
       
-      // Add number overlay
-      const numberOverlay = document.createElement('div');
-      numberOverlay.className = 'word-card-number';
-      numberOverlay.textContent = translatedWords.length - words.length + index + 1; // Calculate correct number
-      card.appendChild(numberOverlay);
-
-      card.innerHTML += `
+      // Create the basic structure first
+      card.innerHTML = `
+        <div class="word-card-number">${translatedWords.length - words.length + index + 1}</div>
         <div class="word-card-header">
           <div class="word-container" data-original-length="${word.originalWord.length}">
             <span class="word">${word.translatedWord}</span>
@@ -571,6 +567,10 @@ document.addEventListener('DOMContentLoaded', async () => {
               <img src="../assets/smart_toy.svg" class="ai-icon" alt="AI">
               <span>AI Similarity Score: <span class="ai-score">...</span></span>
             </div>
+            <div class="word-card-hint">
+              <span class="part-of-speech">loading...</span>
+              <span class="hint-text">Loading hint...</span>
+            </div>
           </div>
         </div>
       `;
@@ -578,110 +578,132 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Add card to container
       wordsContainer.appendChild(card);
 
-      // Get elements once and reuse them
+      // Get elements for this card
       const wordContainer = card.querySelector('.word-container');
       const wordSpan = wordContainer.querySelector('.word');
+      const hintContainer = card.querySelector('.word-card-hint');
+      const header = card.querySelector('.word-card-header');
       
       // Set the original word length for the dotted line
-      wordContainer.style.setProperty('--original-length', word.originalWord.length);
-      
+      if (wordContainer) {
+        wordContainer.style.setProperty('--original-length', word.originalWord.length);
+      }
+
+      // Add header click handler
+      if (header) {
+        header.addEventListener('click', (event) => {
+          const input = card.querySelector('.dotted-input');
+          // If clicking input or already open card, return
+          if (event.target === input || card.classList.contains('open')) {
+            return;
+          }
+
+          // Toggle card state
+          if (!card.classList.contains('open')) {
+            openCard(card);
+          }
+
+          // Scroll to word in content
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'scrollToWord',
+              word: word.translatedWord
+            });
+          });
+        });
+      }
+
+      // Get enhanced hint and update the hint section
+      try {
+        const enhancedHint = await getEnhancedHint(word.originalWord, sourceLanguageSelect.value);
+        if (hintContainer) {
+          const partOfSpeech = hintContainer.querySelector('.part-of-speech');
+          const hintText = hintContainer.querySelector('.hint-text');
+          if (partOfSpeech) partOfSpeech.textContent = enhancedHint.partOfSpeech;
+          if (hintText) hintText.textContent = enhancedHint.hint;
+        }
+      } catch (error) {
+        console.error('Error getting hint:', error);
+        if (hintContainer) {
+          const hintText = hintContainer.querySelector('.hint-text');
+          if (hintText) hintText.textContent = 'Hint not available';
+        }
+      }
+
       // Function to check if word is too long
       const checkWordLength = () => {
+        if (!wordContainer || !wordSpan) return;
         const containerWidth = wordContainer.offsetWidth - 48; // Subtract padding
         const wordWidth = wordSpan.offsetWidth;
         const estimatedInputWidth = word.originalWord.length * 12; // Rough estimate of input width
         
-        // If word is longer than 40% of container or total width would exceed container
-        if (wordWidth > containerWidth * 0.4 || (wordWidth + 60 + estimatedInputWidth) > containerWidth) {
-          wordContainer.classList.add('vertical');
+        if (wordWidth > containerWidth * 0.4 || (wordWidth + estimatedInputWidth) > containerWidth) {
+          wordContainer.classList.add('stacked');
         } else {
-          wordContainer.classList.remove('vertical');
+          wordContainer.classList.remove('stacked');
         }
       };
 
-      // Check on creation and window resize
-      setTimeout(checkWordLength, 0); // Check after DOM paint
+      // Check word length on load and window resize
+      checkWordLength();
       window.addEventListener('resize', checkWordLength);
 
-      // Add click handler for header
-      const header = card.querySelector('.word-card-header');
-      const icon = card.querySelector('.arrow-icon');
+      // Add event listeners for this card
+      const checkButton = card.querySelector('.check-button');
+      const skipButton = card.querySelector('.skip-button');
+      const hintButton = card.querySelector('.hint-button');
       const input = card.querySelector('.dotted-input');
-      const feedback = card.querySelector('.word-card-feedback');
-      
-      header.addEventListener('click', (event) => {
-        // Send message to content script to scroll to the translated word
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: 'scrollToWord',
-            word: word.translatedWord
-          });
+
+      if (checkButton && input) {
+        checkButton.addEventListener('click', () => {
+          checkAnswer(card, word);
         });
+      }
 
-        // If clicking input or already open card, return
-        if (event.target === input || card.classList.contains('open')) {
-          return;
-        }
+      if (skipButton) {
+        skipButton.addEventListener('click', () => {
+          showFeedback(card, 'Skipped - Answer: ' + word.originalWord, false);
+          input.value = word.originalWord;
+          input.disabled = true;
+        });
+      }
 
-        // Toggle card state
-        if (!card.classList.contains('open')) {
-          openCard(card);
-        }
-      });
+      if (hintButton) {
+        hintButton.addEventListener('click', () => {
+          const hintSection = card.querySelector('.word-card-hint');
+          if (hintSection) {
+            hintSection.classList.toggle('visible');
+            hintButton.classList.toggle('active');
+          }
+        });
+      }
+    }
+  }
 
-      // Function to show feedback with animation
-      const showFeedbackWithAnimation = (feedback, message, type = '') => {
-        // Reset the feedback state
-        feedback.className = 'word-card-feedback';
-        feedback.style.transition = 'none';
-        feedback.offsetHeight; // Force reflow
-        feedback.style.transition = 'all 0.3s ease';
-        
-        // Set the message and show feedback
-        feedback.textContent = message;
-        feedback.className = `word-card-feedback visible ${type}`;
-      };
-
-      // Function to hide feedback with animation
-      const hideFeedbackWithAnimation = (feedback) => {
-        feedback.className = 'word-card-feedback';
-      };
-
-      // Add button handlers
-      const feedbackContainer = card.querySelector('.word-card-feedback-container');
+  async function getEnhancedHint(word, sourceLanguage) {
+    try {
+      const response = await fetch('https://api.dictionaryapi.dev/api/v2/entries/' + sourceLanguage + '/' + encodeURIComponent(word));
+      if (!response.ok) throw new Error('Failed to fetch hint');
       
-      // Check button
-      card.querySelector('.check-button').addEventListener('click', () => {
-        checkAnswer(card, word);
-      });
-
-      // Hint button
-      card.querySelector('.hint-button').addEventListener('click', () => {
-        const hint = word.originalWord.charAt(0) + '_'.repeat(word.originalWord.length - 1);
-        showFeedbackWithAnimation(feedback, `Hint: ${hint}`, 'hint');
-      });
-
-      // Skip button
-      card.querySelector('.skip-button').addEventListener('click', () => {
-        showFeedbackWithAnimation(feedback, `The word was: ${word.originalWord}`);
-        
-        setTimeout(() => {
-          hideFeedbackWithAnimation(feedback);
-          setTimeout(() => {
-            closeCard(card);
-          }, 300);
-        }, 1500);
-      });
-
-      // Report button
-      card.querySelector('.report-button').addEventListener('click', () => {
-        showFeedbackWithAnimation(feedback, 'Word reported. Thank you for your feedback!');
-        
-        setTimeout(() => {
-          hideFeedbackWithAnimation(feedback);
-        }, 2000);
-      });
-    });
+      const data = await response.json();
+      if (!data || !data[0]) throw new Error('No data found');
+      
+      const entry = data[0];
+      const meanings = entry.meanings[0] || {};
+      const partOfSpeech = meanings.partOfSpeech || 'unknown';
+      const definition = meanings.definitions?.[0]?.definition || '';
+      
+      return {
+        partOfSpeech,
+        hint: definition
+      };
+    } catch (error) {
+      console.error('Error getting enhanced hint:', error);
+      return {
+        partOfSpeech: 'unknown',
+        hint: 'No additional hint available'
+      };
+    }
   }
 
   async function checkAnswer(wordCard, word) {
@@ -735,32 +757,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Status and progress handling functions
   function showStatus(message, type = 'info') {
     const statusElement = document.getElementById('status');
-    if (statusElement) {
-      statusElement.textContent = message;
-      statusElement.className = `status ${type}`;
-      statusElement.style.display = 'block';
-    }
+    statusElement.textContent = message;
+    statusElement.className = `status ${type}`;
+    statusElement.style.display = 'block';
   }
 
   function hideStatus() {
     const statusElement = document.getElementById('status');
-    if (statusElement) {
-      statusElement.style.display = 'none';
-    }
+    statusElement.style.display = 'none';
+  }
+
+  function showLoadingBar() {
+    const loadingBar = document.getElementById('loading-bar-container');
+    loadingBar.style.display = 'block';
+  }
+
+  function hideLoadingBar() {
+    const loadingBar = document.getElementById('loading-bar-container');
+    loadingBar.style.display = 'none';
   }
 
   function showProgress() {
     const progressElement = document.getElementById('progress');
-    if (progressElement) {
-      progressElement.style.display = 'block';
-    }
+    progressElement.style.display = 'block';
   }
 
   function hideProgress() {
     const progressElement = document.getElementById('progress');
-    if (progressElement) {
-      progressElement.style.display = 'none';
-    }
+    progressElement.style.display = 'none';
   }
 
   function initializeModeSwitch() {
@@ -872,6 +896,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const checkButton = card.querySelector('.check-button');
 
     header.addEventListener('click', (event) => {
+      // Send message to content script to scroll to the translated word
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'scrollToWord',
+          word: sentence.translatedText
+        });
+      });
+
       // If clicking input or already open card, return
       if (event.target === input || card.classList.contains('open')) {
         return;

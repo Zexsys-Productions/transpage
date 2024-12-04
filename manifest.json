@@ -3,6 +3,12 @@
   "name": "Transpage",
   "version": "1.0",
   "description": "A Chrome extension for learning languages through webpage translation",
+  "icons": {
+    "16": "assets/logo-sq.png",
+    "32": "assets/logo-sq.png",
+    "48": "assets/logo-sq.png",
+    "128": "assets/logo-sq.png"
+  },
   "permissions": [
     "sidePanel",
     "tabs",
@@ -37,7 +43,13 @@
     }
   ],
   "action": {
-    "default_title": "Transpage"
+    "default_title": "Transpage",
+    "default_icon": {
+      "16": "assets/logo-sq.png",
+      "32": "assets/logo-sq.png",
+      "48": "assets/logo-sq.png",
+      "128": "assets/logo-sq.png"
+    }
   },
   "host_permissions": ["<all_urls>"],
   "trial_tokens": [

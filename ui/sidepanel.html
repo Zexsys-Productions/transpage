@@ -171,6 +171,10 @@
       background-color: #fce8e6;
       color: #d93025;
     }
+    .status.info {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
     .progress {
       display: none;
       margin-top: 12px;
@@ -193,6 +197,33 @@
     @keyframes progress {
       0% { transform: translateX(-100%); }
       100% { transform: translateX(100%); }
+    }
+
+    .loading-bar-container {
+      width: 100%;
+      height: 4px;
+      background-color: #f1f3f4;
+      border-radius: 2px;
+      margin: 8px 0;
+      overflow: hidden;
+      display: none;
+    }
+
+    .loading-bar {
+      height: 100%;
+      width: 30%;
+      background-color: #1a73e8;
+      border-radius: 2px;
+      animation: loading 1.5s infinite linear;
+    }
+
+    @keyframes loading {
+      0% {
+        transform: translateX(-100%);
+      }
+      100% {
+        transform: translateX(400%);
+      }
     }
 
     /* Quiz styles */
@@ -734,6 +765,56 @@
       color: #d93025;
     }
 
+    /* Enhanced hint styles */
+    .word-card-hint {
+      margin-top: 12px;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #dadce0;
+      font-size: 13px;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      padding: 0 12px;
+      margin: 0;
+    }
+
+    .word-card-hint.visible {
+      max-height: 200px;
+      opacity: 1;
+      padding: 8px 12px;
+      margin-top: 12px;
+    }
+
+    .part-of-speech {
+      display: inline-block;
+      padding: 2px 6px;
+      background-color: #e8f0fe;
+      color: #1a73e8;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-right: 8px;
+      text-transform: lowercase;
+    }
+
+    .hint-text {
+      color: #5f6368;
+      font-style: italic;
+    }
+
+    /* Hint button active state */
+    .word-card-button.hint-button.active {
+      background-color: #e8f0fe;
+      color: #1a73e8;
+    }
+    
+    .word-card-button.hint-button.active img {
+      filter: invert(40%) sepia(93%) saturate(1352%) hue-rotate(203deg) brightness(119%) contrast(119%);
+    }
+
     /* Add settings menu styles */
     .settings-overlay {
       position: fixed;
@@ -1002,254 +1083,6 @@
       visibility: visible;
     }
 
-    .prompt-test-section {
-      margin: 16px 0;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 8px;
-    }
-
-    .prompt-test-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 16px;
-      color: #202124;
-      font-family: 'Frutiger Neue', sans-serif;
-    }
-
-    .prompt-input-container {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    #promptInput {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      font-size: 14px;
-      resize: vertical;
-      min-height: 60px;
-      font-family: inherit;
-    }
-
-    #promptInput:focus {
-      outline: none;
-      border-color: #1a73e8;
-    }
-
-    .send-prompt-button {
-      width: auto !important;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      background: #1a73e8;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      height: 28px;
-      min-width: 70px;
-      transition: background-color 0.2s;
-    }
-
-    .send-prompt-button img {
-      width: 14px;
-      height: 14px;
-      filter: brightness(0) invert(1);
-    }
-
-    .send-prompt-button:hover {
-      background: #1557b0;
-    }
-
-    .send-prompt-button:disabled {
-      background: #dadce0;
-      cursor: not-allowed;
-    }
-
-    .prompt-response {
-      padding: 12px;
-      background: white;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 60px;
-      max-height: 200px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      display: none;
-    }
-
-    .prompt-response.visible {
-      display: block;
-    }
-
-    .prompt-response.loading {
-      position: relative;
-      color: transparent;
-    }
-
-    .prompt-response.loading::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 24px;
-      height: 24px;
-      border: 3px solid #dadce0;
-      border-top: 3px solid #1a73e8;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: translate(-50%, -50%) rotate(0deg); }
-      100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-
-    .status-message {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-icon {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: #9ca3af;
-    }
-
-    .status-icon.success {
-      background-color: #10b981;
-    }
-
-    .status-icon.error {
-      background-color: #ef4444;
-    }
-
-    /* Translation Test UI Styles */
-    .translation-test-section {
-      padding: 16px;
-      margin: 16px 0;
-    }
-    .translation-test-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 16px;
-      font-weight: 500;
-    }
-    .translation-input-container {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .translation-controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .translation-input {
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      resize: vertical;
-      font-family: inherit;
-    }
-    .language-select {
-      padding: 6px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      background-color: white;
-    }
-    .translation-controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .translation-input {
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      resize: vertical;
-      font-family: inherit;
-    }
-    .language-select {
-      padding: 6px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      background-color: white;
-    }
-    .translation-controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .translation-input {
-      width: 100%;
-      min-height: 60px;
-      padding: 8px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      resize: vertical;
-      font-family: inherit;
-    }
-    .language-select {
-      padding: 6px;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      background-color: white;
-    }
-    .status {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 4px;
-      display: none;
-    }
-
-    .status.success {
-      background-color: #e6f4ea;
-      color: #1e8e3e;
-    }
-
-    .status.error {
-      background-color: #fce8e6;
-      color: #d93025;
-    }
-
-    .status.info {
-      background-color: #e8f0fe;
-      color: #1a73e8;
-    }
-
-    .progress {
-      display: none;
-      text-align: center;
-      padding: 20px;
-    }
-
-    .progress-spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #3498db;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
     .mode-container {
       position: relative;
       overflow: hidden;
@@ -1461,6 +1294,9 @@
     
     <!-- Status and Progress Elements -->
     <div id="status" class="status" style="display: none;"></div>
+    <div id="loading-bar-container" class="loading-bar-container">
+      <div class="loading-bar"></div>
+    </div>
     <div id="progress" class="progress" style="display: none;">
       <div class="progress-spinner"></div>
     </div>
@@ -1512,69 +1348,6 @@
 
     <div id="words-container">
       <!-- Word cards will be dynamically added here -->
-    </div>
-
-    <div class="prompt-test-section">
-      <h3>Prompt API Test</h3>
-      <div class="prompt-input-container">
-        <textarea id="promptInput" placeholder="Enter your prompt here..." rows="3"></textarea>
-        <button id="sendPrompt" class="send-prompt-button">
-          <img src="../assets/send.svg" alt="Send">Send
-        </button>
-      </div>
-      <div id="promptResponse" class="prompt-response"></div>
-    </div>
-
-    <!-- Translation Test UI -->
-    <div class="translation-test-section">
-      <h3>Translation Test</h3>
-      <div class="translation-input-container">
-        <textarea class="translation-input" id="translationInput" placeholder="Enter text to translate..."></textarea>
-        <div class="translation-controls">
-          <select class="language-select" id="sourceLanguage">
-            <option value="en" selected>English</option>
-            <option value="ar">Arabic</option>
-            <option value="bg">Bulgarian</option>
-            <option value="bn">Bengali</option>
-            <option value="cs">Czech</option>
-            <option value="da">Danish</option>
-            <option value="de">German</option>
-            <option value="el">Greek</option>
-          </select>
-          <span>&rarr;</span>
-          <select class="language-select" id="targetLanguage">
-            <option value="id" selected>Indonesian</option>
-            <option value="es">Spanish</option>
-            <option value="ja">Japanese</option>
-            <option value="fr">French</option>
-            <option value="hi">Hindi</option>
-            <option value="it">Italian</option>
-            <option value="ko">Korean</option>
-            <option value="nl">Dutch</option>
-            <option value="pl">Polish</option>
-            <option value="pt">Portuguese</option>
-            <option value="ru">Russian</option>
-            <option value="th">Thai</option>
-            <option value="tr">Turkish</option>
-            <option value="vi">Vietnamese</option>
-            <option value="zh">Chinese (Simplified)</option>
-            <option value="zh-Hant">Chinese (Traditional)</option>
-            <option value="fi">Finnish</option>
-            <option value="hr">Croatian</option>
-            <option value="hu">Hungarian</option>
-            <option value="iw">Hebrew</option>
-            <option value="lt">Lithuanian</option>
-            <option value="no">Norwegian</option>
-            <option value="ro">Romanian</option>
-            <option value="sk">Slovak</option>
-            <option value="sl">Slovenian</option>
-            <option value="sv">Swedish</option>
-            <option value="uk">Ukrainian</option>
-          </select>
-          <button class="primary-button" id="translateButton">Translate</button>
-        </div>
-        <textarea class="translation-input" id="translationOutput" placeholder="Translation will appear here..." readonly></textarea>
-      </div>
     </div>
 
     <div class="divider"></div>

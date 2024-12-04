@@ -88,6 +88,34 @@ const injectStyles = (extensionId) => {
                 color: var(--tooltip-secondary, #95a5a6);
                 margin-top: 2px;
             }
+            .tooltip-content {
+                padding: 8px;
+                max-width: 300px;
+            }
+
+            .word-translation {
+                font-size: 16px;
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+
+            .word-info {
+                font-size: 14px;
+                color: #666;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .part-of-speech {
+                font-style: italic;
+                color: #0066cc;
+            }
+
+            .hint {
+                color: #444;
+                line-height: 1.4;
+            }
         `;
         document.head.appendChild(styles);
     }
