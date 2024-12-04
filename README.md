@@ -34,6 +34,10 @@ https://github.com/user-attachments/assets/8adc0fe2-dcd9-420f-891e-5d3a44bbb4ba
 - Chrome Translation API support
 - Active internet connection
 
+## 📝 License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+
 ---
 
 <p align="center">Made with ❤️ by Zexsys</p>
